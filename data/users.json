@@ -1,0 +1,50 @@
+[
+  {
+    "id": "user-mhs-001",
+    "name": "Nama Mahasiswa",
+    "email": "mahasiswa@eduinsight.ac.id",
+    "password": "$2a$10$ATVyHdAfpr6ZRnHsvbLl0O/Pbb6GGajPgvv60ZBPUjQPgdnq1U.aK",
+    "role": "mahasiswa",
+    "nim": "19746713498174",
+    "angkatan": "2023",
+    "fakultas": "Ilmu Komputer",
+    "prodi": "Teknik Informatika",
+    "createdAt": "2026-10-14T15:28:13.530Z"
+  },
+  {
+    "id": "user-mhs-002",
+    "name": "Mahasiswa FILKOM",
+    "email": "mahasiswa@gmail.ac.id",
+    "password": "$2a$10$uvRDJcrPEgR0MOQk/ZbuY.HqDlJBxbT0dIolnu0MTdCZOrnvaGC2S",
+    "role": "mahasiswa",
+    "nim": "19746713498174",
+    "angkatan": "2023",
+    "fakultas": "Ilmu Komputer",
+    "prodi": "Teknik Informatika",
+    "createdAt": "2026-10-14T15:28:13.659Z"
+  },
+  {
+    "id": "user-dsn-001",
+    "name": "Dr. Ahmad Sahroni, M.Kom.",
+    "email": "dosen@eduinsight.ac.id",
+    "password": "$2a$10$ndez8sQW3qqaCQsY6LOYIuHrbML8QUhJSOmEg837mVa2/DGKMdN5W",
+    "role": "dosen",
+    "nip": "198503152010121002",
+    "fakultas": "Ilmu Komputer",
+    "prodi": "Teknik Informatika",
+    "mataKuliah": [
+      "Pemrograman Web",
+      "Kecerdasan Buatan",
+      "Keamanan Siber"
+    ],
+    "createdAt": "2026-10-14T15:28:13.802Z"
+  },
+  {
+    "id": "user-adm-001",
+    "name": "Administrator Akademik",
+    "email": "admin@eduinsight.ac.id",
+    "password": "$2a$10$wfS61uzwA/907DI9OJ1pNeZXqoKm1TDYLy36pe/6UxfjT8t/0VmVa",
+    "role": "admin",
+    "createdAt": "2026-10-14T15:28:13.936Z"
+  }
+]
