@@ -7,6 +7,7 @@ const {
   logout,
   getProfile,
   getAllUsers,
+  resetPassword,
 } = require('../controllers/authController');
 
 const { authMiddleware } = require('../middleware/authMiddleware');
@@ -21,6 +22,10 @@ router.post('/register', register);
 
 // POST /api/auth/login — Login pengguna
 router.post('/login', login);
+
+// POST /api/auth/reset-password — Lupa password / setel ulang password
+router.post('/reset-password', resetPassword);
+router.post('/forgot-password', resetPassword);
 
 // ═══════════════════════════════════════════
 // PROTECTED ROUTES (Wajib login / Bearer token)

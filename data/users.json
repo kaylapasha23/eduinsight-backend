@@ -3,7 +3,7 @@
     "id": "user-mhs-001",
     "name": "Nama Mahasiswa",
     "email": "mahasiswa@eduinsight.ac.id",
-    "password": "$2a$10$ATVyHdAfpr6ZRnHsvbLl0O/Pbb6GGajPgvv60ZBPUjQPgdnq1U.aK",
+    "password": "$2a$10$2E7AgZyq.gMjv8RibaQ.1e4m5ZUt32SU2jDlXdDtlNxOnFLgGyP/m",
     "role": "mahasiswa",
     "nim": "19746713498174",
     "angkatan": "2023",
@@ -12,10 +12,46 @@
     "createdAt": "2026-10-14T15:28:13.530Z"
   },
   {
+    "id": "user-mhs-brooke",
+    "name": "Brooke Everly",
+    "email": "brookeverly17@eduinsight.student.ac.id",
+    "alternativeEmails": [
+      "brooke.everly@eduinsight.ac.id",
+      "brookeverly17@eduinsight.mail.com"
+    ],
+    "password": "$2a$10$QzoVMTBO7SQTghHevpKLpuCGb9cH00BEEbahpAoWCuQsZNX.b2ALO",
+    "role": "mahasiswa",
+    "nim": "254076512225017",
+    "angkatan": "2023",
+    "fakultas": "Ilmu Komputer",
+    "prodi": "Teknik Informatika",
+    "createdAt": "2026-10-24T16:18:50.615Z",
+    "updatedAt": "2026-10-25T04:38:10.244Z"
+  },
+  {
+    "id": "user-mhs-chris",
+    "name": "Chris Redfield",
+    "email": "redchris@gmail.com",
+    "alternativeEmails": [
+      "chris.redfield@eduinsight.student.ac.id",
+      "chris@eduinsight.ac.id"
+    ],
+    "password": "$2a$10$2E7AgZyq.gMjv8RibaQ.1e4m5ZUt32SU2jDlXdDtlNxOnFLgGyP/m",
+    "additionalPasswordHashes": [
+      "$2a$10$AQbxzsY/W9BFHCdCx3MmluSKrFguO.DyCDQyYRdQtuX7NWCMk6Yn."
+    ],
+    "role": "mahasiswa",
+    "nim": "254076512225018",
+    "angkatan": "2023",
+    "fakultas": "Ilmu Komputer",
+    "prodi": "Teknik Informatika",
+    "createdAt": "2026-10-25T00:51:53.109Z"
+  },
+  {
     "id": "user-mhs-002",
     "name": "Mahasiswa FILKOM",
     "email": "mahasiswa@gmail.ac.id",
-    "password": "$2a$10$uvRDJcrPEgR0MOQk/ZbuY.HqDlJBxbT0dIolnu0MTdCZOrnvaGC2S",
+    "password": "$2a$10$2E7AgZyq.gMjv8RibaQ.1e4m5ZUt32SU2jDlXdDtlNxOnFLgGyP/m",
     "role": "mahasiswa",
     "nim": "19746713498174",
     "angkatan": "2023",
@@ -27,7 +63,7 @@
     "id": "user-dsn-001",
     "name": "Dr. Ahmad Sahroni, M.Kom.",
     "email": "dosen@eduinsight.ac.id",
-    "password": "$2a$10$ndez8sQW3qqaCQsY6LOYIuHrbML8QUhJSOmEg837mVa2/DGKMdN5W",
+    "password": "$2a$10$2E7AgZyq.gMjv8RibaQ.1e4m5ZUt32SU2jDlXdDtlNxOnFLgGyP/m",
     "role": "dosen",
     "nip": "198503152010121002",
     "fakultas": "Ilmu Komputer",
@@ -43,7 +79,7 @@
     "id": "user-adm-001",
     "name": "Administrator Akademik",
     "email": "admin@eduinsight.ac.id",
-    "password": "$2a$10$wfS61uzwA/907DI9OJ1pNeZXqoKm1TDYLy36pe/6UxfjT8t/0VmVa",
+    "password": "$2a$10$nwo93iMTj8KW3ZW.3ldhHephhdjyUAFLAprbFfnrNNSkdUAs4YYry",
     "role": "admin",
     "createdAt": "2026-10-14T15:28:13.936Z"
   }

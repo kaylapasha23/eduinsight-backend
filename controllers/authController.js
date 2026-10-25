@@ -5,6 +5,7 @@ const {
   findUserById,
   createUser,
   getUsers,
+  updateUserPassword,
   blacklistToken,
 } = require('../data/database');
 
@@ -39,81 +40,10 @@ function sanitizeUser(user) {
 // POST /api/auth/register
 // ─────────────────────────────────────────
 async function register(req, res) {
-  try {
-    const { name, email, password, role, nim, nip, fakultas, prodi, angkatan } = req.body;
-
-    // Validasi input wajib
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Registrasi gagal: Nama, email, dan password wajib diisi.',
-      });
-    }
-
-    // Validasi panjang password minimal 6 karakter
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password minimal 6 karakter.',
-      });
-    }
-
-    // Cek apakah email sudah terdaftar
-    const existingUser = findUserByEmail(email);
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email sudah terdaftar. Silakan gunakan email lain atau login.',
-      });
-    }
-
-    // Hash password dengan bcrypt (10 salt rounds)
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Buat user baru
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password: hashedPassword,
-      role: (role || 'mahasiswa').toLowerCase(),
-      createdAt: new Date().toISOString(),
-    };
-
-    // Tambahkan field opsional berdasarkan role
-    if (newUser.role === 'mahasiswa') {
-      newUser.nim = nim || '';
-      newUser.angkatan = angkatan || '';
-      newUser.fakultas = fakultas || 'Ilmu Komputer';
-      newUser.prodi = prodi || 'Teknik Informatika';
-    } else if (newUser.role === 'dosen') {
-      newUser.nip = nip || '';
-      newUser.fakultas = fakultas || 'Ilmu Komputer';
-      newUser.prodi = prodi || 'Teknik Informatika';
-    }
-
-    createUser(newUser);
-
-    // Generate JWT token
-    const token = generateToken(newUser);
-
-    return res.status(201).json({
-      success: true,
-      message: 'Registrasi berhasil! Selamat datang di EduInsight.',
-      data: {
-        user: sanitizeUser(newUser),
-        token,
-        tokenType: 'Bearer',
-      },
-    });
-  } catch (error) {
-    console.error('[REGISTER ERROR]', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan server saat registrasi.',
-    });
-  }
+  return res.status(403).json({
+    success: false,
+    message: 'Registrasi mandiri dinonaktifkan. Aplikasi EduInsight Mobile LMS dikhususkan untuk mahasiswa, dan akun dikelola/diinjeksi langsung oleh Bagian Akademik Kampus.',
+  });
 }
 
 // ─────────────────────────────────────────
@@ -141,7 +71,15 @@ async function login(req, res) {
     }
 
     // Verifikasi password dengan bcrypt
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    let isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid && Array.isArray(user.additionalPasswordHashes)) {
+      for (const altHash of user.additionalPasswordHashes) {
+        if (await bcrypt.compare(password, altHash)) {
+          isPasswordValid = true;
+          break;
+        }
+      }
+    }
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -247,10 +185,76 @@ function getAllUsers(req, res) {
   }
 }
 
+// ─────────────────────────────────────────
+// POST /api/auth/reset-password
+// ─────────────────────────────────────────
+async function resetPassword(req, res) {
+  try {
+    const { email, newPassword, confirmPassword } = req.body;
+
+    // Validasi input
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email dan password baru wajib diisi.',
+      });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Konfirmasi password tidak cocok dengan password baru.',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password baru minimal harus 6 karakter.',
+      });
+    }
+
+    // Cari user berdasarkan email
+    const user = findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Email tidak ditemukan dalam sistem EduInsight.',
+      });
+    }
+
+    // Hash password baru
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password di database
+    const updatedUser = updateUserPassword(email, hashedPassword);
+    if (!updatedUser) {
+      return res.status(500).json({
+        success: false,
+        message: 'Gagal memperbarui password pengguna.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password berhasil disetel ulang! Silakan masuk dengan password baru Anda.',
+    });
+  } catch (error) {
+    console.error('[RESET PASSWORD ERROR]', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server saat menyetel ulang password.',
+    });
+  }
+}
+
 module.exports = {
   register,
   login,
   logout,
   getProfile,
   getAllUsers,
+  resetPassword,
 };
+

@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
     endpoints: {
       register: 'POST /api/auth/register',
       login: 'POST /api/auth/login',
+      resetPassword: 'POST /api/auth/reset-password',
       logout: 'POST /api/auth/logout',
       profile: 'GET /api/auth/profile',
       users: 'GET /api/auth/users (admin only)',
@@ -95,12 +96,15 @@ app.listen(PORT, () => {
   console.log(`  🚀 Server running on http://localhost:${PORT}`);
   console.log('  📋 Endpoints:');
   console.log(`     POST   /api/auth/register`);
-  console.log(`     POST   /api/auth/login`);
+  console.log(`     POST   /api/auth/login
+     POST   /api/auth/reset-password`);
   console.log(`     POST   /api/auth/logout`);
   console.log(`     GET    /api/auth/profile`);
   console.log(`     GET    /api/auth/users (admin)`);
   console.log('  👥 Dummy Accounts:');
   console.log('     mahasiswa@eduinsight.ac.id / password123');
+  console.log('     brookeverly17@eduinsight.student.ac.id / password123 (Brooke Everly)');
+  console.log('     redchris@gmail.com / password123 (Chris Redfield)');
   console.log('     dosen@eduinsight.ac.id     / password123');
   console.log('     admin@eduinsight.ac.id     / admin123');
   console.log('═══════════════════════════════════════════');
