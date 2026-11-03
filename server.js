@@ -5,6 +5,13 @@ const cors = require('cors');
 const { initDatabase } = require('./data/database');
 
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const classRoutes = require('./routes/classRoutes');
+const kehadiranRoutes = require('./routes/kehadiranRoutes');
+const penilaianRoutes = require('./routes/penilaianRoutes');
+const tugasRoutes = require('./routes/tugasRoutes');
+const evaluasiRoutes = require('./routes/evaluasiRoutes');
+const passwordSettingsRoutes = require('./routes/passwordSettingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,8 +67,15 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount auth routes
+// Mount auth & users routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/kehadiran', kehadiranRoutes);
+app.use('/api/penilaian', penilaianRoutes);
+app.use('/api/tugas', tugasRoutes);
+app.use('/api/evaluasi', evaluasiRoutes);
+app.use('/api/password-setting', passwordSettingsRoutes);
 
 // ═══════════════════════════════════════════
 // 404 HANDLER
