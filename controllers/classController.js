@@ -1,10 +1,30 @@
 const ClassModel = require('../models/classModel');
 
-// Mengambil semua data kelas
+// Mengambil semua data kelas (opsional filter query ?day=Senin)
 exports.getAllClasses = async (req, res) => {
   try {
-    const classes = await ClassModel.getAll();
+    const { day } = req.query;
+    let classes;
+    if (day && day !== 'Semua') {
+      classes = await ClassModel.getByDay(day);
+    } else {
+      classes = await ClassModel.getAll();
+    }
     res.status(200).json(classes);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Mengambil kelas berdasarkan ID
+exports.getClassById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const kelas = await ClassModel.getById(id);
+    if (!kelas) {
+      return res.status(404).json({ success: false, message: 'Data kelas tidak ditemukan' });
+    }
+    res.status(200).json(kelas);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -23,7 +43,7 @@ exports.createClass = async (req, res) => {
 // Menghapus kelas berdasarkan ID
 exports.deleteClass = async (req, res) => {
   try {
-    const { id } = req.params; // Mengambil id dari parameter URL
+    const { id } = req.params;
     const affectedRows = await ClassModel.delete(id);
 
     if (affectedRows === 0) {
