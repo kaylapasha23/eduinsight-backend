@@ -2,7 +2,9 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { initDatabase } = require('./data/database');
+
+// Impor modul database
+const dbModule = require('./data/database');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -14,35 +16,48 @@ const evaluasiRoutes = require('./routes/evaluasiRoutes');
 const passwordSettingsRoutes = require('./routes/passwordSettingRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+// Set Port ke 5001 agar tidak bentrok dengan frontend Next.js (port 3000)
+const PORT = process.env.PORT || 5001;
 
 // ═══════════════════════════════════════════
 // MIDDLEWARE
 // ═══════════════════════════════════════════
 
-// CORS — Allow all origins (dev mode, Flutter web/emulator)
+// CORS Configuration
 app.use(
   cors({
-    origin: '*',
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   })
 );
 
-// Parse JSON request body
+// Parse JSON & URL-encoded request body
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ═══════════════════════════════════════════
-// INITIALIZE DATABASE
+// INITIALIZE DATABASE (SAFE LOAD)
 // ═══════════════════════════════════════════
-initDatabase();
+if (typeof dbModule.initDatabase === 'function') {
+  dbModule.initDatabase();
+} else if (typeof dbModule.initDB === 'function') {
+  dbModule.initDB();
+} else if (typeof dbModule.connectDB === 'function') {
+  dbModule.connectDB();
+} else if (typeof dbModule === 'function') {
+  dbModule();
+} else {
+  console.log('ℹ️ Datamodule dimuat (tanpa fungsi init explicit).');
+}
 
 // ═══════════════════════════════════════════
 // ROUTES
 // ═══════════════════════════════════════════
 
-// Health Check
+// Health Check Endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
@@ -67,7 +82,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount auth & users routes
+// Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', classRoutes);
@@ -108,19 +123,7 @@ app.listen(PORT, () => {
   console.log('═══════════════════════════════════════════');
   console.log('  🎓 EduInsight Backend API');
   console.log(`  🚀 Server running on http://localhost:${PORT}`);
-  console.log('  📋 Endpoints:');
-  console.log(`     POST   /api/auth/register`);
-  console.log(`     POST   /api/auth/login
-     POST   /api/auth/reset-password`);
-  console.log(`     POST   /api/auth/logout`);
-  console.log(`     GET    /api/auth/profile`);
-  console.log(`     GET    /api/auth/users (admin)`);
-  console.log('  👥 Dummy Accounts:');
-  console.log('     mahasiswa@eduinsight.ac.id / password123');
-  console.log('     brookeverly17@eduinsight.student.ac.id / password123 (Brooke Everly)');
-  console.log('     redchris@gmail.com / password123 (Chris Redfield)');
-  console.log('     dosen@eduinsight.ac.id     / password123');
-  console.log('     admin@eduinsight.ac.id     / admin123');
+  console.log('  📋 Endpoints Active');
   console.log('═══════════════════════════════════════════');
   console.log('');
 });
