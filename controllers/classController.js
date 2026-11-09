@@ -6,6 +6,7 @@ exports.getAllClasses = async (req, res) => {
     const classes = await ClassModel.getAll();
     res.status(200).json(classes);
   } catch (err) {
+    console.error('[ERROR GET CLASSES]:', err); // <-- Tambahkan baris ini
     res.status(500).json({ success: false, error: err.message });
   }
 };

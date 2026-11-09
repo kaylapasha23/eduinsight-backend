@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const passwordSettingsController = require('../controllers/passwordSettingController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const passwordSettingsController = require('../controllers/passwordSettingsController');
 
-router.post('/', authMiddleware, passwordSettingsController.updatePasswordSettings);
+// Menerima POST & PUT, serta mendukung akhiran / dan /settings
+router.route('/')
+  .post(passwordSettingsController.updatePasswordSettings)
+  .put(passwordSettingsController.updatePasswordSettings);
 
 module.exports = router;
