@@ -1,5 +1,5 @@
 // Prisma Schema configuration for EduInsight
-// Database: MySQL (XAMPP)
+// Database: MySQL (XAMPP) - eduinsight_db
 
 generator client {
   provider = "prisma-client-js"
@@ -28,6 +28,8 @@ model User {
   updatedAt          DateTime @updatedAt
 
   kelasDiajar        Kelas[]  @relation("DosenKelas")
+  notes              Note[]
+  pengumpulanTugas   PengumpulanTugas[]
 
   @@map("users")
 }
@@ -67,27 +69,89 @@ model Kelas {
   dosen   User   @relation("DosenKelas", fields: [dosenId], references: [id])
 
   daftarTugas Tugas[]
+  kehadiran   Kehadiran[]
 
   @@map("kelas")
 }
 
 // 4. Entity Tugas (Tugas Perkuliahan)
 model Tugas {
-  id        String   @id @default(uuid())
-  judul     String
-  deskripsi String?  @db.Text
-  deadline  DateTime
-  lampiran  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  judul       String
+  deskripsi   String?  @db.Text
+  deadline    DateTime
+  deadlineText String? @default("Hari ini, 23.59")
+  category    String   @default("segera") // segera, selesai, terlambat
+  lampiran    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   kelasId String
   kelas   Kelas  @relation(fields: [kelasId], references: [id], onDelete: Cascade)
 
+  pengumpulan PengumpulanTugas[]
+
   @@map("tugas")
 }
 
-// 5. Entity TokenBlacklist (Untuk revokasi token saat logout)
+// 5. Entity PengumpulanTugas (Submissions Mahasiswa)
+model PengumpulanTugas {
+  id          String   @id @default(uuid())
+  taskId      String
+  studentId   String
+  fileName    String?
+  status      String   @default("Diserahkan")
+  submittedAt DateTime @default(now())
+
+  tugas Tugas @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  siswa User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("pengumpulan_tugas")
+}
+
+// 6. Entity Kehadiran (Presensi Perkuliahan)
+model Kehadiran {
+  id          String   @id @default(uuid())
+  kelasId     String
+  namaMatkul  String?
+  nomor       Int      @default(1)
+  topik       String
+  tanggal     String
+  status      String   @default("Hadir") // Hadir, Sakit, Izin, Alpa
+  createdAt   DateTime @default(now())
+
+  kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+
+  @@map("kehadiran")
+}
+
+// 7. Entity Evaluasi (AI Evaluation & Catatan Dosen)
+model Evaluasi {
+  id               String   @id @default(uuid())
+  dateText         String
+  lecturerName     String
+  messages         String   @db.Text // JSON string list AI messages
+  lecturerNote     String?  @db.Text
+  createdAt        DateTime @default(now())
+
+  @@map("evaluasi_mahasiswa")
+}
+
+// 8. Entity Note (Catatan Mahasiswa - Offline-First Drift Sync)
+model Note {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  title     String
+  body      String?  @db.Text
+  synced    Boolean  @default(true)
+  updatedAt BigInt   @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+// 9. Entity TokenBlacklist (Untuk revokasi token saat logout)
 model TokenBlacklist {
   id        String   @id @default(uuid())
   token     String   @unique @db.VarChar(500)

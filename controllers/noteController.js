@@ -1,23 +1,28 @@
 const {
   getUserNotes,
-  syncUserNotes,
-  getNotes,
-  saveNotes,
+  createNote,
+  prisma,
 } = require('../data/database');
 
 /**
  * GET /api/notes
  * Ambil semua catatan milik pengguna yang login (berdasarkan JWT token)
  */
-function getNotesHandler(req, res) {
+async function getNotesHandler(req, res) {
   try {
     const userId = req.user.id;
-    const notes = getUserNotes(userId);
+    const notes = await getUserNotes(userId);
+
+    // Konversi BigInt updatedAt ke Number agar serializable ke JSON
+    const serializedNotes = notes.map((n) => ({
+      ...n,
+      updatedAt: Number(n.updatedAt),
+    }));
 
     return res.status(200).json({
       success: true,
       message: 'Catatan berhasil dimuat.',
-      data: { notes },
+      data: { notes: serializedNotes },
     });
   } catch (error) {
     return res.status(500).json({
@@ -31,9 +36,8 @@ function getNotesHandler(req, res) {
 /**
  * POST /api/notes/sync
  * Sinkronisasi batch catatan offline-first dari Drift local DB
- * Menerima array catatan dari client, menyimpan data, dan mengembalikan status synced
  */
-function syncNotesHandler(req, res) {
+async function syncNotesHandler(req, res) {
   try {
     const userId = req.user.id;
     const incomingNotes = req.body.notes;
@@ -45,14 +49,32 @@ function syncNotesHandler(req, res) {
       });
     }
 
-    const { syncedIds, notes } = syncUserNotes(userId, incomingNotes);
+    const syncedIds = [];
+    for (const note of incomingNotes) {
+      const created = await prisma.note.create({
+        data: {
+          userId,
+          title: note.title || 'Catatan Baru',
+          body: note.body || '',
+          synced: true,
+          updatedAt: BigInt(note.updatedAt || Date.now()),
+        },
+      });
+      syncedIds.push(created.id);
+    }
+
+    const allNotes = await getUserNotes(userId);
+    const serializedNotes = allNotes.map((n) => ({
+      ...n,
+      updatedAt: Number(n.updatedAt),
+    }));
 
     return res.status(200).json({
       success: true,
       message: `Sinkronisasi berhasil. ${syncedIds.length} catatan tersinkronkan.`,
       data: {
         syncedIds,
-        notes,
+        notes: serializedNotes,
       },
     });
   } catch (error) {
@@ -68,7 +90,7 @@ function syncNotesHandler(req, res) {
  * POST /api/notes
  * Tambah catatan tunggal
  */
-function createNoteHandler(req, res) {
+async function createNoteHandler(req, res) {
   try {
     const userId = req.user.id;
     const { title, body } = req.body;
@@ -80,23 +102,17 @@ function createNoteHandler(req, res) {
       });
     }
 
-    const allNotes = getNotes();
-    const newNote = {
-      id: allNotes.length > 0 ? Math.max(...allNotes.map((n) => n.id || 0)) + 1 : 1,
-      userId,
-      title: title.trim(),
-      body: body || '',
-      synced: true,
-      updatedAt: Date.now(),
-    };
-
-    allNotes.push(newNote);
-    saveNotes(allNotes);
+    const newNote = await createNote(userId, title.trim(), body || '');
 
     return res.status(201).json({
       success: true,
       message: 'Catatan berhasil dibuat.',
-      data: { note: newNote },
+      data: {
+        note: {
+          ...newNote,
+          updatedAt: Number(newNote.updatedAt),
+        },
+      },
     });
   } catch (error) {
     return res.status(500).json({

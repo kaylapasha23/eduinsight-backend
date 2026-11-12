@@ -1,16 +1,30 @@
-const evaluasiModel = require('../models/evaluasiModel');
+const { prisma } = require('../data/database');
 
-// Ambil data evaluasi mahasiswa
+// Ambil data evaluasi mahasiswa (AI Evaluation Card)
 exports.getEvaluasi = async (req, res) => {
   try {
-    const { class_id, student_name } = req.query;
-    const data = await evaluasiModel.getByStudent(class_id, student_name);
-    
-    if (!data) {
-      return res.status(404).json({ success: false, message: 'Data evaluasi tidak ditemukan' });
-    }
-    
-    res.status(200).json({ success: true, data });
+    const list = await prisma.evaluasi.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = list.map((ev) => {
+      let messages = [];
+      try {
+        messages = JSON.parse(ev.messages);
+      } catch (_) {
+        messages = [{ text: ev.messages, isPositive: true }];
+      }
+
+      return {
+        id: ev.id,
+        dateText: ev.dateText,
+        lecturerName: ev.lecturerName,
+        messages,
+        lecturerNote: ev.lecturerNote,
+      };
+    });
+
+    res.status(200).json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -19,23 +33,19 @@ exports.getEvaluasi = async (req, res) => {
 // Simpan atau update analisis AI / catatan dosen
 exports.saveEvaluasi = async (req, res) => {
   try {
-    const { class_id, student_name, nilai_akhir, tren_kehadiran, indikator_risiko, insight_performa, catatan_dosen } = req.body;
+    const { dateText, lecturerName, messages, lecturerNote } = req.body;
 
-    if (!class_id || !student_name) {
-      return res.status(400).json({ success: false, message: 'class_id dan student_name wajib diisi!' });
-    }
-
-    await evaluasiModel.upsertEvaluasi({
-      class_id,
-      student_name,
-      nilai_akhir,
-      tren_kehadiran,
-      indikator_risiko,
-      insight_performa,
-      catatan_dosen
+    const newEval = await prisma.evaluasi.create({
+      data: {
+        id: `eval-${Date.now()}`,
+        dateText: dateText || 'Hari ini',
+        lecturerName: lecturerName || 'Dosen Pembimbing',
+        messages: typeof messages === 'string' ? messages : JSON.stringify(messages || []),
+        lecturerNote: lecturerNote || null,
+      },
     });
 
-    res.status(200).json({ success: true, message: 'Data evaluasi berhasil disimpan' });
+    res.status(200).json({ success: true, message: 'Data evaluasi berhasil disimpan', data: newEval });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

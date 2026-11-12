@@ -1,17 +1,35 @@
-const ClassModel = require('../models/classModel');
-const database = require('../data/database');
+const { prisma } = require('../data/database');
 
-// Mengambil semua data kelas (opsional filter query ?day=Senin)
+// Mengambil semua data kelas & jadwal
 const getAllClasses = async (req, res) => {
   try {
     const { day } = req.query;
-    let classes;
-    if (day && day !== 'Semua') {
-      classes = await ClassModel.getByDay(day);
-    } else {
-      classes = await ClassModel.getAll();
-    }
-    res.status(200).json(classes);
+    const where = day && day !== 'Semua' ? { hari: day } : {};
+
+    const classes = await prisma.kelas.findMany({
+      where,
+      include: {
+        mataKuliah: true,
+        dosen: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    const formatted = classes.map((k) => ({
+      id: k.id,
+      code: k.kodeGabung,
+      name: k.mataKuliah ? k.mataKuliah.nama : 'Mata Kuliah',
+      sks: k.mataKuliah ? k.mataKuliah.sks : 3,
+      semester: k.semester,
+      dosen_id: k.dosenId,
+      dosen_name: k.dosen ? k.dosen.name : 'Dosen Pengampu',
+      class_room: k.ruangan,
+      schedule_day: k.hari,
+      schedule_time: `${k.jamMulai} - ${k.jamSelesai} WIB`,
+      created_at: k.createdAt,
+    }));
+
+    res.status(200).json(formatted);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -21,11 +39,33 @@ const getAllClasses = async (req, res) => {
 const getClassById = async (req, res) => {
   try {
     const { id } = req.params;
-    const kelas = await ClassModel.getById(id);
-    if (!kelas) {
+    const k = await prisma.kelas.findUnique({
+      where: { id },
+      include: {
+        mataKuliah: true,
+        dosen: true,
+      },
+    });
+
+    if (!k) {
       return res.status(404).json({ success: false, message: 'Data kelas tidak ditemukan' });
     }
-    res.status(200).json(kelas);
+
+    const formatted = {
+      id: k.id,
+      code: k.kodeGabung,
+      name: k.mataKuliah ? k.mataKuliah.nama : 'Mata Kuliah',
+      sks: k.mataKuliah ? k.mataKuliah.sks : 3,
+      semester: k.semester,
+      dosen_id: k.dosenId,
+      dosen_name: k.dosen ? k.dosen.name : 'Dosen Pengampu',
+      class_room: k.ruangan,
+      schedule_day: k.hari,
+      schedule_time: `${k.jamMulai} - ${k.jamSelesai} WIB`,
+      created_at: k.createdAt,
+    };
+
+    res.status(200).json(formatted);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -34,8 +74,35 @@ const getClassById = async (req, res) => {
 // Menambah kelas baru
 const createClass = async (req, res) => {
   try {
-    const insertId = await ClassModel.create(req.body);
-    res.status(201).json({ success: true, message: 'Kelas berhasil ditambahkan', id: insertId });
+    const { code, name, sks, ruangan, schedule_day, schedule_time } = req.body;
+
+    let matkul = await prisma.mataKuliah.findUnique({ where: { kode: code } });
+    if (!matkul) {
+      matkul = await prisma.mataKuliah.create({
+        data: {
+          kode: code,
+          nama: name || 'Mata Kuliah Baru',
+          sks: sks || 3,
+        },
+      });
+    }
+
+    const dosen = await prisma.user.findFirst({ where: { role: 'dosen' } });
+
+    const newKelas = await prisma.kelas.create({
+      data: {
+        id: `kelas-${Date.now()}`,
+        kodeGabung: code,
+        ruangan: ruangan || 'Ruang Kuliah',
+        hari: schedule_day || 'Senin',
+        jamMulai: schedule_time ? schedule_time.split('-')[0].trim() : '08.00',
+        jamSelesai: schedule_time ? schedule_time.split('-')[1]?.trim() : '10.00',
+        mataKuliahId: matkul.id,
+        dosenId: dosen ? dosen.id : 'user-dsn-001',
+      },
+    });
+
+    res.status(201).json({ success: true, message: 'Kelas berhasil ditambahkan', id: newKelas.id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -45,80 +112,10 @@ const createClass = async (req, res) => {
 const deleteClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const affectedRows = await ClassModel.delete(id);
-
-    if (affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Data kelas tidak ditemukan' });
-    }
-
+    await prisma.kelas.delete({ where: { id } });
     res.status(200).json({ success: true, message: `Kelas dengan ID ${id} berhasil dihapus` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-// Fallback untuk Kehadiran jika ada modul lama yang memanggil dari classController
-const getKehadiran = async (req, res) => {
-  try {
-    let dataKehadiran = [];
-    if (database && typeof database.query === 'function') {
-      const [rows] = await database.query(`
-        SELECT 
-          k.id, 
-          k.status, 
-          k.tanggal, 
-          COALESCE(u.name, k.student_name, 'Mahasiswa') AS student_name,
-          COALESCE(u.nim, k.nim, '220101001') AS nim
-        FROM kehadiran k
-        LEFT JOIN users u ON k.mahasiswa_id = u.id
-      `);
-      dataKehadiran = rows;
-    } else if (typeof database.getKehadiran === 'function') {
-      dataKehadiran = database.getKehadiran();
-    } else if (Array.isArray(database.kehadiran)) {
-      dataKehadiran = database.kehadiran;
-    }
-
-    if (!dataKehadiran || dataKehadiran.length === 0) {
-      dataKehadiran = [
-        { id: 'khd-1', nim: '220101001', student_name: 'Budi Santoso', status: 'Hadir' },
-        { id: 'khd-2', nim: '220101002', student_name: 'Siti Rahmawati', status: 'Hadir' },
-        { id: 'khd-3', nim: '220101003', student_name: 'Ahmad Dahlan', status: 'Izin' },
-      ];
-    }
-
-    return res.status(200).json({ success: true, data: dataKehadiran });
-  } catch (err) {
-    console.error('[GET KEHADIRAN ERROR]:', err);
-    return res.status(200).json({ success: true, data: [] });
-  }
-};
-
-const createKehadiran = async (req, res) => {
-  try {
-    const { student_name, status, class_id, nim } = req.body;
-    const newRecord = {
-      id: `khd-${Date.now()}`,
-      student_name,
-      nim: nim || '220101001',
-      status: status || 'Hadir',
-      class_id: class_id || 1,
-      tanggal: new Date().toISOString().split('T')[0],
-    };
-
-    if (database && typeof database.query === 'function') {
-      await database.query(
-        'INSERT INTO kehadiran (id, student_name, status, tanggal) VALUES (?, ?, ?, ?)',
-        [newRecord.id, newRecord.student_name, newRecord.status, newRecord.tanggal]
-      );
-    } else if (Array.isArray(database.kehadiran)) {
-      database.kehadiran.push(newRecord);
-    }
-
-    return res.status(201).json({ success: true, message: 'Presensi berhasil disimpan', data: newRecord });
-  } catch (err) {
-    console.error('[SAVE KEHADIRAN ERROR]:', err);
-    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -128,6 +125,4 @@ module.exports = {
   getClassById,
   createClass,
   deleteClass,
-  getKehadiran,
-  createKehadiran,
 };

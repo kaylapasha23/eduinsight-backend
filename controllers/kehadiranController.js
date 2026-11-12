@@ -1,54 +1,32 @@
-const db = require('../data/database');
-
-// Default initial attendance data aligned with Frontend
-const defaultKehadiranData = [
-  {
-    nama: 'Basis Data',
-    jadwal: '12.00-14.00 Lantai 6, Ruang 606',
-    riwayat: [
-      { nomor: 5, topik: 'Query & Relasi Tabel', tanggal: 'Rabu, 29 Oktober 2026', status: 'Sakit' },
-      { nomor: 4, topik: 'Dasar SQL', tanggal: 'Rabu, 22 Oktober 2026', status: 'Alpa' },
-      { nomor: 3, topik: 'Relasi Database', tanggal: 'Rabu, 15 Oktober 2026', status: 'Hadir' },
-      { nomor: 2, topik: 'Normalisasi Data', tanggal: 'Rabu, 8 Oktober 2026', status: 'Hadir' },
-      { nomor: 1, topik: 'Pengenalan Basis Data', tanggal: 'Rabu, 1 Oktober 2026', status: 'Hadir' },
-    ],
-  },
-  {
-    nama: 'Kecerdasan Buatan',
-    jadwal: '14.00-15.20 Lantai 7, Ruang 701',
-    riwayat: [
-      { nomor: 3, topik: 'Machine Learning Lanjut', tanggal: 'Senin, 13 Oktober 2026', status: 'Hadir' },
-      { nomor: 2, topik: 'Algoritma Pencarian Heuristik', tanggal: 'Senin, 6 Oktober 2026', status: 'Izin' },
-      { nomor: 1, topik: 'Pengantar Sistem Pakar', tanggal: 'Senin, 29 September 2026', status: 'Hadir' },
-    ],
-  },
-  {
-    nama: 'Pemrograman Web',
-    jadwal: '08.00-10.00 Lantai 5, Ruang 502',
-    riwayat: [
-      { nomor: 3, topik: 'Routing & Navigasi Modern', tanggal: 'Selasa, 13 Oktober 2026', status: 'Hadir' },
-      { nomor: 2, topik: 'Komponen & State Props', tanggal: 'Selasa, 6 Oktober 2026', status: 'Hadir' },
-      { nomor: 1, topik: 'Dasar HTML & CSS Responsive', tanggal: 'Selasa, 29 September 2026', status: 'Alpa' },
-    ],
-  },
-];
+const { prisma } = require('../data/database');
 
 // GET /api/kehadiran
 const getKehadiran = async (req, res) => {
   try {
-    let result = defaultKehadiranData;
+    const list = await prisma.kehadiran.findMany({
+      orderBy: { nomor: 'desc' },
+    });
 
-    // Jika tabel SQL kehadiran terisi, kita bisa kombinasikan
-    if (db && typeof db.query === 'function') {
-      try {
-        const [rows] = await db.query('SELECT * FROM kehadiran ORDER BY id DESC');
-        if (rows && rows.length > 0) {
-          // Flattened list juga disertakan
-        }
-      } catch (e) {
-        // Fallback default
+    // Kelompokkan data per mata kuliah sesuai struktur yang diharapkan Frontend
+    const grouped = {};
+    for (const item of list) {
+      const mkName = item.namaMatkul || 'Mata Kuliah';
+      if (!grouped[mkName]) {
+        grouped[mkName] = {
+          nama: mkName,
+          jadwal: '14.00-15.20 Ruang Kuliah',
+          riwayat: [],
+        };
       }
+      grouped[mkName].riwayat.push({
+        nomor: item.nomor,
+        topik: item.topik,
+        tanggal: item.tanggal,
+        status: item.status,
+      });
     }
+
+    const result = Object.values(grouped);
 
     return res.status(200).json({
       success: true,
@@ -69,11 +47,30 @@ const getKehadiran = async (req, res) => {
 // POST /api/kehadiran
 const createKehadiran = async (req, res) => {
   try {
-    const { matkul_name, nomor, topik, tanggal, status } = req.body;
+    const { matkul_name, nomor, topik, tanggal, status, class_id } = req.body;
+
+    let targetKelasId = class_id;
+    if (!targetKelasId) {
+      const firstKelas = await prisma.kelas.findFirst();
+      targetKelasId = firstKelas ? firstKelas.id : 'kelas-ai';
+    }
+
+    const newKhd = await prisma.kehadiran.create({
+      data: {
+        id: `khd-${Date.now()}`,
+        kelasId: targetKelasId,
+        namaMatkul: matkul_name || 'Basis Data',
+        nomor: nomor || 1,
+        topik: topik || 'Materi Perkuliahan',
+        tanggal: tanggal || new Date().toISOString().split('T')[0],
+        status: status || 'Hadir',
+      },
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Data kehadiran berhasil dicatat',
-      data: { matkul_name, nomor, topik, tanggal, status },
+      data: newKhd,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -81,7 +78,15 @@ const createKehadiran = async (req, res) => {
 };
 
 const deleteKehadiran = async (req, res) => {
-  return res.status(200).json({ success: true, message: 'Data kehadiran berhasil dihapus' });
+  try {
+    const { id } = req.params;
+    if (id) {
+      await prisma.kehadiran.delete({ where: { id } }).catch(() => {});
+    }
+    return res.status(200).json({ success: true, message: 'Data kehadiran berhasil dihapus' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 module.exports = {

@@ -4,8 +4,8 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const USERS_FILE = path.join(__dirname, 'users.json');
 
+// 1. Data Users Dummy persis sesuai Frontend
 const DEFAULT_USERS = [
   {
     id: 'user-mhs-001',
@@ -152,7 +152,7 @@ const DEFAULT_USERS = [
   },
 ];
 
-// Data Mata Kuliah persis sesuai academic.dart & nilai.dart
+// 2. Data Master Mata Kuliah persis sesuai academic.dart & nilai.dart
 const MASTER_MATKUL = [
   { id: 'mk-ai', kode: 'VTI51366', nama: 'Kecerdasan Buatan', sks: 3 },
   { id: 'mk-web', kode: 'VTI51329', nama: 'Pemrograman Web', sks: 4 },
@@ -165,11 +165,11 @@ const MASTER_MATKUL = [
   { id: 'mk-iot', kode: 'VTI51340', nama: 'Internet of Things (IoT)', sks: 3 },
 ];
 
-// Data Kelas perkuliahan persis sesuai academic.dart & gabung_kelas_screen.dart
+// 3. Data Kelas perkuliahan persis sesuai jadwal di frontend
 const MASTER_KELAS = [
   {
     id: 'kelas-ai',
-    kodeGabung: 'VTI51366', // sesuai kode mata kuliah di frontend
+    kodeGabung: 'VTI51366',
     ruangan: 'Lantai 7, Ruangan 701',
     hari: 'Senin',
     jamMulai: '14.00',
@@ -178,7 +178,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51366',
-    dosenNip: '198503152010121002', // Dr. Ahmad Sahroni, M.Kom.
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-web',
@@ -191,7 +191,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51329',
-    dosenNip: '198204122008122001', // Ir. Tri Astuti, M.T.
+    dosenNip: '198204122008122001',
   },
   {
     id: 'kelas-basdat',
@@ -204,11 +204,11 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51250',
-    dosenNip: '198709232014041001', // Teddy Indra Wijaya, M.Kom.
+    dosenNip: '198709232014041001',
   },
   {
     id: 'kelas-cyber',
-    kodeGabung: 'VTI51322', // contoh di hint gabung_kelas_screen: VTI51322
+    kodeGabung: 'VTI51322',
     ruangan: 'Lab Keamanan, Lantai 4',
     hari: 'Kamis',
     jamMulai: '10.00',
@@ -217,7 +217,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51322',
-    dosenNip: '197105151998031002', // Prof. Bambang Hariyanto, Ph.D.
+    dosenNip: '197105151998031002',
   },
   {
     id: 'kelas-rpl',
@@ -230,7 +230,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51375',
-    dosenNip: '198911202015041003', // Ivan Gunawan, M.Ds.
+    dosenNip: '198911202015041003',
   },
   {
     id: 'kelas-stat',
@@ -243,7 +243,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51389',
-    dosenNip: '196802101993032001', // Dra. Endang Sulistyo, M.Stat.
+    dosenNip: '196802101993032001',
   },
   {
     id: 'kelas-kwu',
@@ -256,7 +256,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51310',
-    dosenNip: '197906142005012003', // Dr. Rini Handayani, M.M.
+    dosenNip: '197906142005012003',
   },
   {
     id: 'kelas-uiux',
@@ -269,7 +269,7 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51315',
-    dosenNip: '198911202015041003', // Ivan Gunawan, M.Ds.
+    dosenNip: '198911202015041003',
   },
   {
     id: 'kelas-iot',
@@ -282,47 +282,51 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51340',
-    dosenNip: '198709232014041001', // Teddy Indra Wijaya, M.Kom.
+    dosenNip: '198709232014041001',
   },
 ];
 
-// Data Tugas persis sesuai detail_tugas_screen.dart & kelas_screen.dart
+// 4. Data Master Tugas persis sesuai detail_tugas_screen.dart & kelas_screen.dart
 const MASTER_TUGAS = [
-  // 1. Kewirausahaan (Tugas Segera)
   {
     id: 'tugas-kwu-01',
     kelasId: 'kelas-kwu',
     judul: 'Tugas 1 - Quiziz',
     deskripsi: 'Kerjakan kuis Kewirausahaan melalui Quizizz materi BMC (Business Model Canvas).\n\n• Kerjakan tepat waktu sebelum tenggat\n• Screenshot nilai akhir kuis dan lampirkan sebagai bukti pengerjaan tugas.',
     lampiran: 'Panduan_Kuis_Kewirausahaan.pdf',
-    deadline: new Date(Date.now() + 4 * 60 * 60 * 1000), // Hari ini, 23.59
+    deadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+    deadlineText: 'Hari ini, 23.59',
+    category: 'segera',
   },
-  // 2. UI/UX Design (Tugas Segera)
   {
     id: 'tugas-uiux-01',
     kelasId: 'kelas-uiux',
     judul: 'Tugas 1 - Analisa Aplikasi',
     deskripsi: 'Lakukan analisa heuristik pada aplikasi mobile EduTech pilihanmu.\n\n• Identifikasi 5 masalah usability beserta rekomendasi perbaikannya\n• Kumpulkan dalam format PDF rangkuman laporan.',
     lampiran: 'Template_Analisa_Heuristik.pdf',
-    deadline: new Date(Date.now() + 5 * 60 * 60 * 1000), // Hari ini, 23.59
+    deadline: new Date(Date.now() + 5 * 60 * 60 * 1000),
+    deadlineText: 'Hari ini, 23.59',
+    category: 'segera',
   },
-  // 3. IoT (Tugas Segera)
   {
     id: 'tugas-iot-01',
     kelasId: 'kelas-iot',
     judul: 'Pertemuan Pertama',
     deskripsi: 'Buat rangkuman singkat mengenai komponen mikrokontroler ESP32 dan protokol MQTT.\n\n• Format: PDF (maksimal 2 halaman)\n• Unggah dokumen hasil resume pada bagian Tugas Saya di bawah.',
     lampiran: null,
-    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Rabu, 23.59
+    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Rabu, 23.59',
+    category: 'segera',
   },
-  // 4. Kecerdasan Buatan (Tugas Selesai / Diserahkan)
   {
     id: 'tugas-ai-01',
     kelasId: 'kelas-ai',
     judul: 'Tugas Pengenalan AI',
     deskripsi: 'Rangkuman pengantar AI, perbedaan antara machine learning dan deep learning, serta implementasi agen cerdas.\n\nStatus: Sudah diserahkan tepat waktu.',
     lampiran: 'Modul_Pengenalan_AI.pdf',
-    deadline: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Minggu Lalu
+    deadline: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Diserahkan',
+    category: 'selesai',
   },
   {
     id: 'tugas-ai-02',
@@ -331,33 +335,115 @@ const MASTER_TUGAS = [
     deskripsi: 'Studi kasus perbandingan algoritma pencarian BFS/DFS dan A* Search pada implementasi maze routing.',
     lampiran: null,
     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Minggu depan',
+    category: 'segera',
   },
-  // 5. Basis Data Terdistribusi (Tugas Selesai / Diserahkan)
   {
     id: 'tugas-basdat-01',
     kelasId: 'kelas-basdat',
     judul: 'Latihan SQL Dasar',
     deskripsi: 'Latihan query DDL & DML, join relasi tabel, dan agregasi data pada MySQL / PostgreSQL.\n\nStatus: Sudah diserahkan tepat waktu.',
     lampiran: 'Soal_Latihan_SQL.pdf',
-    deadline: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Minggu Lalu
+    deadline: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Diserahkan',
+    category: 'selesai',
   },
-  // 6. Pemrograman Web (Tugas Selesai / Diserahkan)
   {
     id: 'tugas-web-01',
     kelasId: 'kelas-web',
     judul: 'Tugas Array & Function',
     deskripsi: 'Implementasi logika manipulasi array dan closure function pada JavaScript ES6+.\n\nStatus: Sudah diserahkan tepat waktu.',
     lampiran: 'Panduan_Array_Function.pdf',
-    deadline: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 Minggu Lalu
+    deadline: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Diserahkan',
+    category: 'selesai',
   },
-  // 7. IoT (Laporan Praktikum Selesai)
   {
     id: 'tugas-iot-02',
     kelasId: 'kelas-iot',
     judul: 'Laporan Praktikum 1',
     deskripsi: 'Laporan hasil pembacaan sensor DHT22 ke serial monitor dan simulasi Wokwi.\n\nStatus: Sudah diserahkan tepat waktu.',
     lampiran: 'Modul_Praktikum_IoT_1.pdf',
-    deadline: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 Minggu Lalu
+    deadline: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    deadlineText: 'Diserahkan',
+    category: 'selesai',
+  },
+];
+
+// 5. Data Dummy Kehadiran persis sesuai kehadiran.dart di frontend
+const MASTER_KEHADIRAN = [
+  // Basis Data (kelas-basdat)
+  { id: 'khd-bd-5', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 5, topik: 'Query & Relasi Tabel', tanggal: 'Rabu, 29 Oktober 2026', status: 'Sakit' },
+  { id: 'khd-bd-4', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 4, topik: 'Dasar SQL', tanggal: 'Rabu, 22 Oktober 2026', status: 'Alpa' },
+  { id: 'khd-bd-3', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 3, topik: 'Relasi Database', tanggal: 'Rabu, 15 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-bd-2', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 2, topik: 'Model Data & ERD', tanggal: 'Rabu, 8 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-bd-1', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 1, topik: 'Pengenalan Basis Data', tanggal: 'Rabu, 1 Oktober 2026', status: 'Hadir' },
+
+  // Kecerdasan Buatan (kelas-ai)
+  { id: 'khd-ai-4', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 4, topik: 'Pencarian Heuristik', tanggal: 'Senin, 19 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-ai-3', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 3, topik: 'Pencarian Buta', tanggal: 'Senin, 12 Oktober 2026', status: 'Izin' },
+  { id: 'khd-ai-2', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 2, topik: 'Agen Cerdas', tanggal: 'Senin, 5 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-ai-1', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 1, topik: 'Pengenalan AI', tanggal: 'Senin, 28 September 2026', status: 'Hadir' },
+
+  // Pemrograman Web (kelas-web)
+  { id: 'khd-web-3', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 3, topik: 'Routing & Navigasi', tanggal: 'Selasa, 13 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-web-2', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 2, topik: 'Komponen & Props', tanggal: 'Selasa, 6 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-web-1', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 1, topik: 'Dasar HTML & CSS', tanggal: 'Selasa, 29 September 2026', status: 'Alpa' },
+];
+
+// 6. Data Dummy Evaluasi AI persis sesuai ai_evalution_card.dart di frontend
+const MASTER_EVALUASI = [
+  {
+    id: 'eval-01',
+    dateText: 'Senin, 24 Januari 2026',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
+    messages: JSON.stringify([
+      {
+        text: 'Kehadiranmu mengalami penurunan dalam beberapa pertemuan terakhir. Usahakan hadir pada pertemuan berikutnya agar tetap memenuhi batas minimum kehadiran.',
+        isPositive: false,
+      },
+      {
+        text: 'Nilai kuis terakhir masih rendah. Coba pelajari kembali materi yang berkaitan dan kerjakan latihan tambahan.',
+        isPositive: false,
+      },
+    ]),
+    lecturerNote: 'Mohon temui saya di ruang dosen pada hari Rabu jam 10.00 untuk membahas remedial kuis dan perbaikan presensi sebelum UTS.',
+  },
+  {
+    id: 'eval-02',
+    dateText: 'Minggu, 23 Januari 2026',
+    lecturerName: 'Ir. Tri Astuti, M.T.',
+    messages: JSON.stringify([
+      {
+        text: 'Kehadiranmu mulai membaik dibanding minggu sebelumnya. Pertahankan konsistensi kehadiran.',
+        isPositive: true,
+      },
+      {
+        text: 'Nilai kuis terakhir meningkat. Pertahankan pola belajar dan fokus pada materi yang masih belum dikuasai.',
+        isPositive: true,
+      },
+      {
+        text: 'Materi yang perlu dipelajari kembali: array dan function.',
+        isPositive: false,
+      },
+    ]),
+    lecturerNote: null,
+  },
+  {
+    id: 'eval-03',
+    dateText: 'Sabtu, 22 Januari 2026',
+    lecturerName: 'Prof. Bambang Hariyanto, Ph.D.',
+    messages: JSON.stringify([
+      {
+        text: 'Kehadiran telah memenuhi batas minimum.',
+        isPositive: true,
+      },
+      {
+        text: 'Nilai tugas sudah cukup baik, tetapi hasil kuis masih belum konsisten. Perhatikan kembali materi yang mendapat nilai rendah.',
+        isPositive: false,
+      },
+    ]),
+    lecturerNote: null,
   },
 ];
 
@@ -390,11 +476,11 @@ function formatUser(u) {
 }
 
 /**
- * Reset dan sync database dengan data master frontend
+ * Reset dan sync database MySQL dengan data master dummy dari frontend
  */
 async function syncDatabaseWithFrontend() {
   try {
-    // 1. Sync / Upsert Users
+    // 1. Sync Users
     for (const u of DEFAULT_USERS) {
       await prisma.user.upsert({
         where: { email: u.email.toLowerCase().trim() },
@@ -444,7 +530,7 @@ async function syncDatabaseWithFrontend() {
       });
     }
 
-    // 3. Sync Kelas (Hubungkan ke Matkul & Dosen Pengampu yang sesuai)
+    // 3. Sync Kelas
     for (const k of MASTER_KELAS) {
       const matkul = await prisma.mataKuliah.findUnique({ where: { kode: k.matkulKode } });
       const dosen = await prisma.user.findFirst({ where: { nip: k.dosenNip } });
@@ -488,6 +574,8 @@ async function syncDatabaseWithFrontend() {
           judul: t.judul,
           deskripsi: t.deskripsi,
           deadline: t.deadline,
+          deadlineText: t.deadlineText,
+          category: t.category,
           lampiran: t.lampiran,
           kelasId: t.kelasId,
         },
@@ -496,32 +584,68 @@ async function syncDatabaseWithFrontend() {
           judul: t.judul,
           deskripsi: t.deskripsi,
           deadline: t.deadline,
+          deadlineText: t.deadlineText,
+          category: t.category,
           lampiran: t.lampiran,
           kelasId: t.kelasId,
         },
       });
     }
 
-    // Hapus data dummy lama yang salah (seperti dummy 'mk-ai-001' atau 'kelas-ai-01' lama)
+    // 5. Sync Kehadiran
+    for (const kh of MASTER_KEHADIRAN) {
+      await prisma.kehadiran.upsert({
+        where: { id: kh.id },
+        update: {
+          namaMatkul: kh.namaMatkul,
+          nomor: kh.nomor,
+          topik: kh.topik,
+          tanggal: kh.tanggal,
+          status: kh.status,
+          kelasId: kh.kelasId,
+        },
+        create: {
+          id: kh.id,
+          namaMatkul: kh.namaMatkul,
+          nomor: kh.nomor,
+          topik: kh.topik,
+          tanggal: kh.tanggal,
+          status: kh.status,
+          kelasId: kh.kelasId,
+        },
+      });
+    }
+
+    // 6. Sync Evaluasi
+    for (const ev of MASTER_EVALUASI) {
+      await prisma.evaluasi.upsert({
+        where: { id: ev.id },
+        update: {
+          dateText: ev.dateText,
+          lecturerName: ev.lecturerName,
+          messages: ev.messages,
+          lecturerNote: ev.lecturerNote,
+        },
+        create: {
+          id: ev.id,
+          dateText: ev.dateText,
+          lecturerName: ev.lecturerName,
+          messages: ev.messages,
+          lecturerNote: ev.lecturerNote,
+        },
+      });
+    }
+
+    // Bersihkan entri tugas yang bukan bagian dari master
     await prisma.tugas.deleteMany({
       where: {
         id: { notIn: MASTER_TUGAS.map((t) => t.id) },
       },
     }).catch(() => {});
 
-    await prisma.kelas.deleteMany({
-      where: {
-        id: { notIn: MASTER_KELAS.map((k) => k.id) },
-      },
-    }).catch(() => {});
-
-    await prisma.mataKuliah.deleteMany({
-      where: {
-        kode: { notIn: MASTER_MATKUL.map((m) => m.kode) },
-      },
-    }).catch(() => {});
+    console.log('✅ Sinkronisasi Database MySQL EduInsight Berhasil!');
   } catch (err) {
-    console.error('Database sync error:', err.message);
+    console.error('❌ Database sync error:', err.message);
   }
 }
 
@@ -582,7 +706,7 @@ async function getUsers() {
 async function createUser(userData) {
   const created = await prisma.user.create({
     data: {
-      id: userData.id,
+      id: userData.id || `user-${Date.now()}`,
       name: userData.name,
       email: userData.email.toLowerCase().trim(),
       alternativeEmails: userData.alternativeEmails ? JSON.stringify(userData.alternativeEmails) : null,
@@ -597,6 +721,18 @@ async function createUser(userData) {
     },
   });
   return formatUser(created);
+}
+
+async function updateUser(id, updateData) {
+  const updated = await prisma.user.update({
+    where: { id },
+    data: updateData,
+  });
+  return formatUser(updated);
+}
+
+async function deleteUser(id) {
+  return await prisma.user.delete({ where: { id } });
 }
 
 async function updateUserPassword(email, newHashedPassword) {
@@ -630,6 +766,26 @@ async function isTokenBlacklisted(token) {
   return !!found;
 }
 
+// Catatan (Notes)
+async function getUserNotes(userId) {
+  return await prisma.note.findMany({
+    where: { userId },
+    orderBy: { id: 'desc' },
+  });
+}
+
+async function createNote(userId, title, body) {
+  return await prisma.note.create({
+    data: {
+      userId,
+      title,
+      body,
+      synced: true,
+      updatedAt: BigInt(Date.now()),
+    },
+  });
+}
+
 module.exports = {
   prisma,
   initDatabase,
@@ -637,8 +793,17 @@ module.exports = {
   findUserByEmail,
   findUserById,
   createUser,
+  updateUser,
+  deleteUser,
   updateUserPassword,
   blacklistToken,
   isTokenBlacklisted,
+  getUserNotes,
+  createNote,
   DEFAULT_USERS,
+  MASTER_MATKUL,
+  MASTER_KELAS,
+  MASTER_TUGAS,
+  MASTER_KEHADIRAN,
+  MASTER_EVALUASI,
 };
