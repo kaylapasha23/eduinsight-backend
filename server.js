@@ -27,7 +27,16 @@ const PORT = process.env.PORT || 5001;
 // CORS Configuration
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      // Izinkan request tanpa origin (aplikasi mobile/Postman)
+      if (!origin) return callback(null, true);
+
+      // Izinkan localhost / 127.0.0.1 di port mana pun (Flutter Web, Next.js)
+      const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isLocal) return callback(null, true);
+
+      return callback(new Error('Origin tidak diizinkan oleh CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
