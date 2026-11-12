@@ -61,6 +61,23 @@ async function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = {
-  authMiddleware,
-};
+function optionalAuthMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = findUserById(decoded.id);
+    if (user) {
+      req.user = user;
+      req.token = token;
+    }
+  } catch (e) {
+    // Ignore invalid token for optional auth
+  }
+  next();
+}
+
+module.exports = { authMiddleware, optionalAuthMiddleware, JWT_SECRET };

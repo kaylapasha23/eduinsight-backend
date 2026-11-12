@@ -1,12 +1,11 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const {
   findUserByEmail,
   findUserById,
-  createUser,
   getUsers,
-  updateUserPassword,
   blacklistToken,
+  updateUserPassword,
 } = require('../data/database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eduinsight-super-secret-key-pbl-2026';
@@ -107,13 +106,13 @@ async function getProfile(req, res) {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Profil tidak ditemukan.',
+        message: 'Pengguna tidak ditemukan di sistem!',
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Profil berhasil diambil.',
+      message: 'Profile OK',
       data: {
         user: sanitizeUser(user),
       },
