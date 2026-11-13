@@ -1,5 +1,5 @@
 // Prisma Schema configuration for EduInsight
-// Database: MySQL (XAMPP) - eduinsight_db
+// Unified Database: MySQL (XAMPP) - eduinsight_db
 
 generator client {
   provider = "prisma-client-js"
@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Entity User (Pengguna: Mahasiswa, Dosen, Admin)
+// 1. Entity User (Mahasiswa, Dosen, Admin)
 model User {
   id                 String   @id @default(uuid())
   name               String
@@ -27,9 +27,10 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  kelasDiajar        Kelas[]  @relation("DosenKelas")
+  kelasDiajar        Kelas[]            @relation("DosenKelas")
   notes              Note[]
   pengumpulanTugas   PengumpulanTugas[]
+  passwordSettings   PasswordSetting[]
 
   @@map("users")
 }
@@ -70,21 +71,23 @@ model Kelas {
 
   daftarTugas Tugas[]
   kehadiran   Kehadiran[]
+  penilaian   Penilaian[]
+  evaluasi    Evaluasi[]
 
   @@map("kelas")
 }
 
 // 4. Entity Tugas (Tugas Perkuliahan)
 model Tugas {
-  id          String   @id @default(uuid())
-  judul       String
-  deskripsi   String?  @db.Text
-  deadline    DateTime
-  deadlineText String? @default("Hari ini, 23.59")
-  category    String   @default("segera") // segera, selesai, terlambat
-  lampiran    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  judul        String
+  deskripsi    String?  @db.Text
+  deadline     DateTime
+  deadlineText String?  @default("Hari ini, 23.59")
+  category     String   @default("segera") // segera, selesai, terlambat
+  lampiran     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   kelasId String
   kelas   Kelas  @relation(fields: [kelasId], references: [id], onDelete: Cascade)
@@ -114,10 +117,11 @@ model Kehadiran {
   id          String   @id @default(uuid())
   kelasId     String
   namaMatkul  String?
+  studentName String?
   nomor       Int      @default(1)
   topik       String
   tanggal     String
-  status      String   @default("Hadir") // Hadir, Sakit, Izin, Alpa
+  status      String   @default("Hadir") // Hadir, Sakit, Izin, Alfa
   createdAt   DateTime @default(now())
 
   kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
@@ -125,19 +129,57 @@ model Kehadiran {
   @@map("kehadiran")
 }
 
-// 7. Entity Evaluasi (AI Evaluation & Catatan Dosen)
+// 7. Entity Penilaian (Penilaian Tugas & Mata Kuliah untuk Web & Mobile)
+model Penilaian {
+  id          String   @id @default(uuid())
+  kelasId     String
+  studentName String
+  taskName    String
+  score       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+
+  @@map("penilaian")
+}
+
+// 8. Entity Evaluasi (Evaluasi Mahasiswa & AI Feedback)
 model Evaluasi {
   id               String   @id @default(uuid())
-  dateText         String
-  lecturerName     String
-  messages         String   @db.Text // JSON string list AI messages
+  kelasId          String?
+  studentName      String?
+  nilaiAkhir       Float?
+  trenKehadiran    String?
+  indikatorRisiko  String?
+  insightPerforma  String?  @db.Text
+  catatanDosen     String?  @db.Text
+  dateText         String?
+  lecturerName     String?
+  messages         String?  @db.Text
   lecturerNote     String?  @db.Text
   createdAt        DateTime @default(now())
+
+  kelas Kelas? @relation(fields: [kelasId], references: [id], onDelete: SetNull)
 
   @@map("evaluasi_mahasiswa")
 }
 
-// 8. Entity Note (Catatan Mahasiswa - Offline-First Drift Sync)
+// 9. Entity PasswordSetting (Pengaturan Sandi & Notifikasi Dosen dari Web)
+model PasswordSetting {
+  id               Int      @id @default(autoincrement())
+  dosenId          String
+  passwordHash     String
+  notifikasiEmail   Boolean  @default(true)
+  notifikasiSistem  Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  dosen User @relation(fields: [dosenId], references: [id], onDelete: Cascade)
+
+  @@map("password_setting")
+}
+
+// 10. Entity Note (Catatan Mahasiswa - Offline-First Drift Sync)
 model Note {
   id        Int      @id @default(autoincrement())
   userId    String
@@ -151,7 +193,7 @@ model Note {
   @@map("notes")
 }
 
-// 9. Entity TokenBlacklist (Untuk revokasi token saat logout)
+// 11. Entity TokenBlacklist (Untuk revokasi token saat logout)
 model TokenBlacklist {
   id        String   @id @default(uuid())
   token     String   @unique @db.VarChar(500)

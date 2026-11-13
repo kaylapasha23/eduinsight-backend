@@ -5,7 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-// 1. Data Users Dummy persis sesuai Frontend
+// 1. Data Users Dummy (Gabungan Mobile Frontend + Web Frontend Dosen/Mahasiswa)
 const DEFAULT_USERS = [
   {
     id: 'user-mhs-001',
@@ -57,6 +57,20 @@ const DEFAULT_USERS = [
     prodi: 'Teknik Informatika',
     createdAt: '2026-10-14T15:28:13.659Z',
   },
+  // Mahasiswa Sheren Annabelle dari Web
+  {
+    id: 'user-mhs-sheren',
+    name: 'Sheren Annabelle',
+    email: 'sheren@eduinsight.student.ac.id',
+    alternativeEmails: ['sheren@gmail.com'],
+    password: bcrypt.hashSync('password123', 10),
+    role: 'mahasiswa',
+    nim: '220101001',
+    angkatan: '2023',
+    fakultas: 'Ilmu Komputer',
+    prodi: 'Teknik Informatika',
+    createdAt: '2026-10-14T15:28:13.659Z',
+  },
   {
     id: 'user-dsn-001',
     name: 'Dr. Ahmad Sahroni, M.Kom.',
@@ -67,7 +81,7 @@ const DEFAULT_USERS = [
     nip: '198503152010121002',
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
-    mataKuliah: ['Kecerdasan Buatan'],
+    mataKuliah: ['Kecerdasan Buatan', 'Pemrograman Framework'],
     createdAt: '2026-10-14T15:28:13.802Z',
   },
   {
@@ -152,7 +166,7 @@ const DEFAULT_USERS = [
   },
 ];
 
-// 2. Data Master Mata Kuliah persis sesuai academic.dart & nilai.dart
+// 2. Data Master Mata Kuliah (Mobile + Web)
 const MASTER_MATKUL = [
   { id: 'mk-ai', kode: 'VTI51366', nama: 'Kecerdasan Buatan', sks: 3 },
   { id: 'mk-web', kode: 'VTI51329', nama: 'Pemrograman Web', sks: 4 },
@@ -163,9 +177,11 @@ const MASTER_MATKUL = [
   { id: 'mk-kwu', kode: 'VTI51310', nama: 'Kewirausahaan', sks: 2 },
   { id: 'mk-uiux', kode: 'VTI51315', nama: 'UI/UX Design', sks: 3 },
   { id: 'mk-iot', kode: 'VTI51340', nama: 'Internet of Things (IoT)', sks: 3 },
+  // Dari db_eduinsight Web:
+  { id: 'mk-pfa', kode: 'PFA3', nama: 'Pemrograman Framework', sks: 3 },
 ];
 
-// 3. Data Kelas perkuliahan persis sesuai jadwal di frontend
+// 3. Data Master Kelas (Mobile + Web)
 const MASTER_KELAS = [
   {
     id: 'kelas-ai',
@@ -284,9 +300,23 @@ const MASTER_KELAS = [
     matkulKode: 'VTI51340',
     dosenNip: '198709232014041001',
   },
+  // Dari db_eduinsight Web (Kelas PFA3):
+  {
+    id: 'kelas-pfa',
+    kodeGabung: 'PFA3',
+    ruangan: 'Kelas A',
+    hari: 'Senin',
+    jamMulai: '10.20',
+    jamSelesai: '13.00',
+    semester: 6,
+    tahunAjaran: '2025/2026 Genap',
+    status: 'Aktif',
+    matkulKode: 'PFA3',
+    dosenNip: '198503152010121002', // Dr. Ahmad Sahroni, M.Kom.
+  },
 ];
 
-// 4. Data Master Tugas persis sesuai detail_tugas_screen.dart & kelas_screen.dart
+// 4. Data Master Tugas (Mobile + Web)
 const MASTER_TUGAS = [
   {
     id: 'tugas-kwu-01',
@@ -368,33 +398,54 @@ const MASTER_TUGAS = [
     deadlineText: 'Diserahkan',
     category: 'selesai',
   },
+  // Dari db_eduinsight Web:
+  {
+    id: 'tugas-pfa-01',
+    kelasId: 'kelas-pfa',
+    judul: 'Membuat API Express.js',
+    deskripsi: 'Menyelesaikan modul MVC untuk backend EduInsight',
+    lampiran: null,
+    deadline: new Date('2026-06-15T23:59:00Z'),
+    deadlineText: '15 Juni 2026',
+    category: 'segera',
+  },
 ];
 
-// 5. Data Dummy Kehadiran persis sesuai kehadiran.dart di frontend
+// 5. Data Dummy Kehadiran (Mobile + Web)
 const MASTER_KEHADIRAN = [
-  // Basis Data (kelas-basdat)
-  { id: 'khd-bd-5', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 5, topik: 'Query & Relasi Tabel', tanggal: 'Rabu, 29 Oktober 2026', status: 'Sakit' },
-  { id: 'khd-bd-4', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 4, topik: 'Dasar SQL', tanggal: 'Rabu, 22 Oktober 2026', status: 'Alpa' },
-  { id: 'khd-bd-3', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 3, topik: 'Relasi Database', tanggal: 'Rabu, 15 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-bd-2', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 2, topik: 'Model Data & ERD', tanggal: 'Rabu, 8 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-bd-1', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', nomor: 1, topik: 'Pengenalan Basis Data', tanggal: 'Rabu, 1 Oktober 2026', status: 'Hadir' },
+  // Basis Data
+  { id: 'khd-bd-5', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', studentName: 'Brooke Everly', nomor: 5, topik: 'Query & Relasi Tabel', tanggal: 'Rabu, 29 Oktober 2026', status: 'Sakit' },
+  { id: 'khd-bd-4', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', studentName: 'Brooke Everly', nomor: 4, topik: 'Dasar SQL', tanggal: 'Rabu, 22 Oktober 2026', status: 'Alpa' },
+  { id: 'khd-bd-3', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', studentName: 'Brooke Everly', nomor: 3, topik: 'Relasi Database', tanggal: 'Rabu, 15 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-bd-2', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', studentName: 'Brooke Everly', nomor: 2, topik: 'Model Data & ERD', tanggal: 'Rabu, 8 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-bd-1', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengenalan Basis Data', tanggal: 'Rabu, 1 Oktober 2026', status: 'Hadir' },
 
-  // Kecerdasan Buatan (kelas-ai)
-  { id: 'khd-ai-4', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 4, topik: 'Pencarian Heuristik', tanggal: 'Senin, 19 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-ai-3', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 3, topik: 'Pencarian Buta', tanggal: 'Senin, 12 Oktober 2026', status: 'Izin' },
-  { id: 'khd-ai-2', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 2, topik: 'Agen Cerdas', tanggal: 'Senin, 5 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-ai-1', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', nomor: 1, topik: 'Pengenalan AI', tanggal: 'Senin, 28 September 2026', status: 'Hadir' },
+  // Kecerdasan Buatan
+  { id: 'khd-ai-4', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 4, topik: 'Pencarian Heuristik', tanggal: 'Senin, 19 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-ai-3', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 3, topik: 'Pencarian Buta', tanggal: 'Senin, 12 Oktober 2026', status: 'Izin' },
+  { id: 'khd-ai-2', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 2, topik: 'Agen Cerdas', tanggal: 'Senin, 5 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-ai-1', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengenalan AI', tanggal: 'Senin, 28 September 2026', status: 'Hadir' },
 
-  // Pemrograman Web (kelas-web)
-  { id: 'khd-web-3', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 3, topik: 'Routing & Navigasi', tanggal: 'Selasa, 13 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-web-2', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 2, topik: 'Komponen & Props', tanggal: 'Selasa, 6 Oktober 2026', status: 'Hadir' },
-  { id: 'khd-web-1', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', nomor: 1, topik: 'Dasar HTML & CSS', tanggal: 'Selasa, 29 September 2026', status: 'Alpa' },
+  // Pemrograman Web
+  { id: 'khd-web-3', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 3, topik: 'Routing & Navigasi', tanggal: 'Selasa, 13 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-web-2', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 2, topik: 'Komponen & Props', tanggal: 'Selasa, 6 Oktober 2026', status: 'Hadir' },
+  { id: 'khd-web-1', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 1, topik: 'Dasar HTML & CSS', tanggal: 'Selasa, 29 September 2026', status: 'Alpa' },
+
+  // Dari db_eduinsight Web (Sheren - Pemrograman Framework)
+  { id: 'khd-pfa-1', kelasId: 'kelas-pfa', namaMatkul: 'Pemrograman Framework', studentName: 'Sheren', nomor: 1, topik: 'Pengenalan Express & MVC', tanggal: '2026-06-07', status: 'Hadir' },
 ];
 
-// 6. Data Dummy Evaluasi AI persis sesuai ai_evalution_card.dart di frontend
+// 6. Data Dummy Evaluasi AI & Dosen (Mobile + Web)
 const MASTER_EVALUASI = [
   {
     id: 'eval-01',
+    kelasId: 'kelas-ai',
+    studentName: 'Brooke Everly',
+    nilaiAkhir: 85.0,
+    trenKehadiran: '88%',
+    indikatorRisiko: 'Sedang',
+    insightPerforma: 'Nilai tugas sangat konsisten, namun keaktifan kuis perlu ditingkatkan.',
+    catatanDosen: 'Mohon temui saya di ruang dosen pada hari Rabu jam 10.00 untuk membahas remedial kuis dan perbaikan presensi sebelum UTS.',
     dateText: 'Senin, 24 Januari 2026',
     lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
     messages: JSON.stringify([
@@ -411,6 +462,13 @@ const MASTER_EVALUASI = [
   },
   {
     id: 'eval-02',
+    kelasId: 'kelas-web',
+    studentName: 'Brooke Everly',
+    nilaiAkhir: 90.0,
+    trenKehadiran: '95%',
+    indikatorRisiko: 'Rendah',
+    insightPerforma: 'Performa sangat baik pada tugas routing dan komponen.',
+    catatanDosen: 'Bagus, pertahankan!',
     dateText: 'Minggu, 23 Januari 2026',
     lecturerName: 'Ir. Tri Astuti, M.T.',
     messages: JSON.stringify([
@@ -431,6 +489,13 @@ const MASTER_EVALUASI = [
   },
   {
     id: 'eval-03',
+    kelasId: 'kelas-cyber',
+    studentName: 'Brooke Everly',
+    nilaiAkhir: 82.5,
+    trenKehadiran: '90%',
+    indikatorRisiko: 'Rendah',
+    insightPerforma: 'Hasil tugas lab keamanan baik.',
+    catatanDosen: null,
     dateText: 'Sabtu, 22 Januari 2026',
     lecturerName: 'Prof. Bambang Hariyanto, Ph.D.',
     messages: JSON.stringify([
@@ -444,6 +509,62 @@ const MASTER_EVALUASI = [
       },
     ]),
     lecturerNote: null,
+  },
+  // Dari db_eduinsight Web (Sheren Annabelle):
+  {
+    id: 'eval-web-01',
+    kelasId: 'kelas-pfa',
+    studentName: 'Sheren Annabelle',
+    nilaiAkhir: 88.5,
+    trenKehadiran: '95%',
+    indikatorRisiko: 'Rendah',
+    insightPerforma: 'Menunjukkan pemahaman yang sangat baik pada modul praktikum backend dan konsisten mengumpulkan tugas tepat waktu.',
+    catatanDosen: 'Pertahankan performa yang baik, tingkatkan keaktifan di kelas.',
+    dateText: 'Senin, 08 November 2026',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
+    messages: JSON.stringify([
+      {
+        text: 'Menunjukkan pemahaman yang sangat baik pada modul praktikum backend dan konsisten mengumpulkan tugas tepat waktu.',
+        isPositive: true,
+      },
+    ]),
+    lecturerNote: 'Pertahankan performa yang baik, tingkatkan keaktifan di kelas.',
+  },
+];
+
+// 7. Data Master Penilaian (Dari db_eduinsight Web + Mobile)
+const MASTER_PENILAIAN = [
+  {
+    id: 'penilaian-01',
+    kelasId: 'kelas-pfa',
+    studentName: 'Sheren',
+    taskName: 'Pemrograman Framework - Tugas 1',
+    score: 90,
+  },
+  {
+    id: 'penilaian-02',
+    kelasId: 'kelas-ai',
+    studentName: 'Brooke Everly',
+    taskName: 'Tugas Pengenalan AI',
+    score: 95,
+  },
+  {
+    id: 'penilaian-03',
+    kelasId: 'kelas-web',
+    studentName: 'Brooke Everly',
+    taskName: 'Tugas Array & Function',
+    score: 92,
+  },
+];
+
+// 8. Data Password Settings Dosen (Dari db_eduinsight Web)
+const MASTER_PASSWORD_SETTING = [
+  {
+    id: 1,
+    dosenId: 'user-dsn-001',
+    passwordHash: '$2a$10$zDfpzNBVoEDZf9IFfT5lYO5ixqxZiEpnzIs4aDUkrfS7BGTP4wlOC',
+    notifikasiEmail: true,
+    notifikasiSistem: true,
   },
 ];
 
@@ -476,7 +597,7 @@ function formatUser(u) {
 }
 
 /**
- * Reset dan sync database MySQL dengan data master dummy dari frontend
+ * Reset dan sync database MySQL eduinsight_db dengan data master (Mobile + Web)
  */
 async function syncDatabaseWithFrontend() {
   try {
@@ -598,6 +719,7 @@ async function syncDatabaseWithFrontend() {
         where: { id: kh.id },
         update: {
           namaMatkul: kh.namaMatkul,
+          studentName: kh.studentName,
           nomor: kh.nomor,
           topik: kh.topik,
           tanggal: kh.tanggal,
@@ -607,6 +729,7 @@ async function syncDatabaseWithFrontend() {
         create: {
           id: kh.id,
           namaMatkul: kh.namaMatkul,
+          studentName: kh.studentName,
           nomor: kh.nomor,
           topik: kh.topik,
           tanggal: kh.tanggal,
@@ -621,6 +744,13 @@ async function syncDatabaseWithFrontend() {
       await prisma.evaluasi.upsert({
         where: { id: ev.id },
         update: {
+          kelasId: ev.kelasId,
+          studentName: ev.studentName,
+          nilaiAkhir: ev.nilaiAkhir,
+          trenKehadiran: ev.trenKehadiran,
+          indikatorRisiko: ev.indikatorRisiko,
+          insightPerforma: ev.insightPerforma,
+          catatanDosen: ev.catatanDosen,
           dateText: ev.dateText,
           lecturerName: ev.lecturerName,
           messages: ev.messages,
@@ -628,6 +758,13 @@ async function syncDatabaseWithFrontend() {
         },
         create: {
           id: ev.id,
+          kelasId: ev.kelasId,
+          studentName: ev.studentName,
+          nilaiAkhir: ev.nilaiAkhir,
+          trenKehadiran: ev.trenKehadiran,
+          indikatorRisiko: ev.indikatorRisiko,
+          insightPerforma: ev.insightPerforma,
+          catatanDosen: ev.catatanDosen,
           dateText: ev.dateText,
           lecturerName: ev.lecturerName,
           messages: ev.messages,
@@ -636,14 +773,47 @@ async function syncDatabaseWithFrontend() {
       });
     }
 
-    // Bersihkan entri tugas yang bukan bagian dari master
-    await prisma.tugas.deleteMany({
-      where: {
-        id: { notIn: MASTER_TUGAS.map((t) => t.id) },
-      },
-    }).catch(() => {});
+    // 7. Sync Penilaian
+    for (const p of MASTER_PENILAIAN) {
+      await prisma.penilaian.upsert({
+        where: { id: p.id },
+        update: {
+          kelasId: p.kelasId,
+          studentName: p.studentName,
+          taskName: p.taskName,
+          score: p.score,
+        },
+        create: {
+          id: p.id,
+          kelasId: p.kelasId,
+          studentName: p.studentName,
+          taskName: p.taskName,
+          score: p.score,
+        },
+      });
+    }
 
-    console.log('✅ Sinkronisasi Database MySQL EduInsight Berhasil!');
+    // 8. Sync Password Settings Dosen
+    for (const ps of MASTER_PASSWORD_SETTING) {
+      await prisma.passwordSetting.upsert({
+        where: { id: ps.id },
+        update: {
+          dosenId: ps.dosenId,
+          passwordHash: ps.passwordHash,
+          notifikasiEmail: ps.notifikasiEmail,
+          notifikasiSistem: ps.notifikasiSistem,
+        },
+        create: {
+          id: ps.id,
+          dosenId: ps.dosenId,
+          passwordHash: ps.passwordHash,
+          notifikasiEmail: ps.notifikasiEmail,
+          notifikasiSistem: ps.notifikasiSistem,
+        },
+      });
+    }
+
+    console.log('✅ Sinkronisasi Database MySQL EduInsight (Mobile + Web) Berhasil!');
   } catch (err) {
     console.error('❌ Database sync error:', err.message);
   }
@@ -806,4 +976,6 @@ module.exports = {
   MASTER_TUGAS,
   MASTER_KEHADIRAN,
   MASTER_EVALUASI,
+  MASTER_PENILAIAN,
+  MASTER_PASSWORD_SETTING,
 };
