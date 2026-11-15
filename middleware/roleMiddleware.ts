@@ -1,9 +1,12 @@
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from './authMiddleware.js';
+
 /**
  * Role-Based Access Control (RBAC) Guard Middleware
- * @param  {...string} allowedRoles - Daftar role yang diizinkan mengakses endpoint
+ * @param {...string} allowedRoles Daftar role yang diizinkan mengakses endpoint
  */
-function roleMiddleware(...allowedRoles) {
-  return (req, res, next) => {
+export function roleMiddleware(...allowedRoles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -25,8 +28,6 @@ function roleMiddleware(...allowedRoles) {
       });
     }
 
-    next();
+    return next();
   };
 }
-
-module.exports = { roleMiddleware };

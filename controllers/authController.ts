@@ -1,17 +1,19 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const {
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
+import {
   findUserByEmail,
   findUserById,
   getUsers,
   blacklistToken,
   updateUserPassword,
-} = require('../data/database');
+} from '../data/database.js';
+import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eduinsight-super-secret-key-pbl-2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
-function generateToken(user) {
+function generateToken(user: any): string {
   return jwt.sign(
     {
       id: user.id,
@@ -20,24 +22,24 @@ function generateToken(user) {
       name: user.name,
     },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN as any }
   );
 }
 
-function sanitizeUser(user) {
+function sanitizeUser(user: any): any {
   if (!user) return null;
   const { password, ...safeUser } = user;
   return safeUser;
 }
 
-async function register(req, res) {
+export async function register(req: Request, res: Response): Promise<Response> {
   return res.status(403).json({
     success: false,
     message: 'Registrasi mandiri dinonaktifkan. Silakan hubungi bagian akademik.',
   });
 }
 
-async function login(req, res) {
+export async function login(req: Request, res: Response): Promise<Response> {
   try {
     const { email, password } = req.body;
 
@@ -83,9 +85,9 @@ async function login(req, res) {
   }
 }
 
-async function logout(req, res) {
+export async function logout(req: AuthenticatedRequest, res: Response): Promise<Response> {
   try {
-    const token = req.token;
+    const token = req.token || '';
     await blacklistToken(token);
 
     return res.status(200).json({
@@ -100,8 +102,15 @@ async function logout(req, res) {
   }
 }
 
-async function getProfile(req, res) {
+export async function getProfile(req: AuthenticatedRequest, res: Response): Promise<Response> {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Akses ditolak: Pengguna belum terautentikasi.',
+      });
+    }
+
     const user = await findUserById(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -125,7 +134,7 @@ async function getProfile(req, res) {
   }
 }
 
-async function getAllUsers(req, res) {
+export async function getAllUsers(req: Request, res: Response): Promise<Response> {
   try {
     const users = await getUsers();
     const safeUsers = users.map(sanitizeUser);
@@ -146,7 +155,7 @@ async function getAllUsers(req, res) {
   }
 }
 
-async function resetPassword(req, res) {
+export async function resetPassword(req: Request, res: Response): Promise<Response> {
   try {
     const { email, newPassword, confirmPassword } = req.body;
 
@@ -202,7 +211,7 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = {
+export default {
   register,
   login,
   logout,

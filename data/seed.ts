@@ -1,7 +1,7 @@
-const mysql = require('mysql2/promise');
+import mysql, { Connection } from 'mysql2/promise';
 
-const seedScript = async () => {
-  let connection;
+const seedScript = async (): Promise<void> => {
+  let connection: Connection | null = null;
   try {
     console.log('Menghubungkan ke MySQL server lokal...');
 
@@ -144,8 +144,8 @@ const seedScript = async () => {
     console.log('Database db_eduinsight dan seluruh data Users, Kelas, dan Tugas BERHASIL dibuat!');
     if (connection) await connection.end();
     process.exit(0);
-  } catch (err) {
-    console.error('Gagal menjalankan seed database:', err.message);
+  } catch (err: any) {
+    console.error('Gagal menjalankan seed database:', err?.message || err);
     if (connection) await connection.end();
     process.exit(1);
   }

@@ -21,6 +21,7 @@ model User {
   nim                String?
   nip                String?  @unique
   angkatan           String?  @default("2023")
+  semester           Int?     @default(4)
   fakultas           String?  @default("Ilmu Komputer")
   prodi              String?  @default("Teknik Informatika")
   mataKuliah         String?  @db.Text

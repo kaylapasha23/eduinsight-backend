@@ -1,7 +1,8 @@
-const { prisma } = require('../data/database');
+import { Request, Response } from 'express';
+import { prisma } from '../data/database.js';
 
 // Ambil semua data penilaian semester (mendukung format Web & Mobile)
-exports.getAllPenilaian = async (req, res) => {
+export const getAllPenilaian = async (req: Request, res: Response): Promise<Response> => {
   try {
     const list = await prisma.penilaian.findMany({
       include: {
@@ -14,18 +15,18 @@ exports.getAllPenilaian = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: list,
       updated_at: new Date().toISOString(),
     });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Tambah data penilaian baru
-exports.createPenilaian = async (req, res) => {
+export const createPenilaian = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { class_id, student_name, task_name, score } = req.body;
 
@@ -49,23 +50,29 @@ exports.createPenilaian = async (req, res) => {
       },
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Data penilaian berhasil ditambahkan',
       data: created,
     });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Hapus data penilaian
-exports.deletePenilaian = async (req, res) => {
+export const deletePenilaian = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    await prisma.penilaian.delete({ where: { id } });
-    res.status(200).json({ success: true, message: 'Data penilaian berhasil dihapus' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    await prisma.penilaian.delete({ where: { id: String(id) } });
+    return res.status(200).json({ success: true, message: 'Data penilaian berhasil dihapus' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
+};
+
+export default {
+  getAllPenilaian,
+  createPenilaian,
+  deletePenilaian,
 };

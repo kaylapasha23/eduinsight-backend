@@ -1,7 +1,8 @@
-const { prisma } = require('../data/database');
+import { Request, Response } from 'express';
+import { prisma } from '../data/database.js';
 
 // Map jadwal per mata kuliah
-const jadwalMap = {
+const jadwalMap: Record<string, string> = {
   'Kecerdasan Buatan': '14.00-15.20 Lantai 7, Ruangan 701',
   'Pemrograman Web': '08.00-10.00 Lantai 5, Ruang 502',
   'Basis Data Terdistribusi': '12.00-14.00 Lantai 6, Ruang 606',
@@ -14,14 +15,14 @@ const jadwalMap = {
 };
 
 // GET /api/kehadiran
-const getKehadiran = async (req, res) => {
+export const getKehadiran = async (req: Request, res: Response): Promise<Response> => {
   try {
     const list = await prisma.kehadiran.findMany({
       orderBy: { nomor: 'desc' },
     });
 
     // Kelompokkan data per mata kuliah sesuai struktur yang diharapkan Frontend
-    const grouped = {};
+    const grouped: Record<string, any> = {};
     for (const item of list) {
       const mkName = item.namaMatkul || 'Mata Kuliah';
       if (!grouped[mkName]) {
@@ -47,18 +48,18 @@ const getKehadiran = async (req, res) => {
       total_matkul: result.length,
       updated_at: new Date().toISOString(),
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[GET KEHADIRAN ERROR]:', err);
     return res.status(500).json({
       success: false,
       message: 'Gagal mengambil data kehadiran',
-      error: err.message,
+      error: err?.message || err,
     });
   }
 };
 
 // POST /api/kehadiran
-const createKehadiran = async (req, res) => {
+export const createKehadiran = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { matkul_name, nomor, topik, tanggal, status, class_id } = req.body;
 
@@ -73,7 +74,7 @@ const createKehadiran = async (req, res) => {
         id: `khd-${Date.now()}`,
         kelasId: targetKelasId,
         namaMatkul: matkul_name || 'Basis Data',
-        nomor: nomor || 1,
+        nomor: nomor ? Number(nomor) : 1,
         topik: topik || 'Materi Perkuliahan',
         tanggal: tanggal || new Date().toISOString().split('T')[0],
         status: status || 'Hadir',
@@ -85,24 +86,24 @@ const createKehadiran = async (req, res) => {
       message: 'Data kehadiran berhasil dicatat',
       data: newKhd,
     });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err?.message || err });
   }
 };
 
-const deleteKehadiran = async (req, res) => {
+export const deleteKehadiran = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     if (id) {
-      await prisma.kehadiran.delete({ where: { id } }).catch(() => {});
+      await prisma.kehadiran.delete({ where: { id: String(id) } }).catch(() => {});
     }
     return res.status(200).json({ success: true, message: 'Data kehadiran berhasil dihapus' });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err?.message || err });
   }
 };
 
-module.exports = {
+export default {
   getKehadiran,
   getAllKehadiran: getKehadiran,
   createKehadiran,

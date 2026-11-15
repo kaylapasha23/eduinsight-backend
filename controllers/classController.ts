@@ -1,10 +1,11 @@
-const { prisma } = require('../data/database');
+import { Request, Response } from 'express';
+import { prisma } from '../data/database.js';
 
 // Mengambil semua data kelas & jadwal
-const getAllClasses = async (req, res) => {
+export const getAllClasses = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { day } = req.query;
-    const where = day && day !== 'Semua' ? { hari: day } : {};
+    const where = day && day !== 'Semua' ? { hari: String(day) } : {};
 
     const classes = await prisma.kelas.findMany({
       where,
@@ -15,7 +16,7 @@ const getAllClasses = async (req, res) => {
       orderBy: { id: 'asc' },
     });
 
-    const formatted = classes.map((k) => ({
+    const formatted = classes.map((k: any) => ({
       id: k.id,
       code: k.kodeGabung,
       name: k.mataKuliah ? k.mataKuliah.nama : 'Mata Kuliah',
@@ -29,14 +30,14 @@ const getAllClasses = async (req, res) => {
       created_at: k.createdAt,
     }));
 
-    res.status(200).json(formatted);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json(formatted);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Mengambil kelas berdasarkan ID
-const getClassById = async (req, res) => {
+export const getClassById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const k = await prisma.kelas.findUnique({
@@ -65,14 +66,14 @@ const getClassById = async (req, res) => {
       created_at: k.createdAt,
     };
 
-    res.status(200).json(formatted);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json(formatted);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Menambah kelas baru
-const createClass = async (req, res) => {
+export const createClass = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { code, name, sks, ruangan, schedule_day, schedule_time } = req.body;
 
@@ -82,7 +83,7 @@ const createClass = async (req, res) => {
         data: {
           kode: code,
           nama: name || 'Mata Kuliah Baru',
-          sks: sks || 3,
+          sks: sks ? Number(sks) : 3,
         },
       });
     }
@@ -102,24 +103,24 @@ const createClass = async (req, res) => {
       },
     });
 
-    res.status(201).json({ success: true, message: 'Kelas berhasil ditambahkan', id: newKelas.id });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(201).json({ success: true, message: 'Kelas berhasil ditambahkan', id: newKelas.id });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Menghapus kelas berdasarkan ID
-const deleteClass = async (req, res) => {
+export const deleteClass = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     await prisma.kelas.delete({ where: { id } });
-    res.status(200).json({ success: true, message: `Kelas dengan ID ${id} berhasil dihapus` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json({ success: true, message: `Kelas dengan ID ${id} berhasil dihapus` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
-module.exports = {
+export default {
   getAllClasses,
   getClasses: getAllClasses,
   getClassById,

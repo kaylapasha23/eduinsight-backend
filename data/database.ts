@@ -1,12 +1,120 @@
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcryptjs');
-const { PrismaClient } = require('@prisma/client');
+import * as bcrypt from 'bcryptjs';
+import { PrismaClient, User as PrismaUser } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// 1. Data Users Dummy (Gabungan Mobile Frontend + Web Frontend Dosen/Mahasiswa)
-const DEFAULT_USERS = [
+// --- INTERFACES & TYPES ---
+
+export interface UserSeedData {
+  id: string;
+  name: string;
+  email: string;
+  alternativeEmails?: string[] | string;
+  password: string;
+  role: string;
+  nim?: string;
+  nip?: string;
+  angkatan?: string;
+  semester?: number;
+  fakultas?: string;
+  prodi?: string;
+  mataKuliah?: string[] | string;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface MasterMatkul {
+  id: string;
+  kode: string;
+  nama: string;
+  sks: number;
+}
+
+export interface MasterKelas {
+  id: string;
+  kodeGabung: string;
+  ruangan: string;
+  hari: string;
+  jamMulai: string;
+  jamSelesai: string;
+  semester: number;
+  tahunAjaran: string;
+  status: string;
+  matkulKode: string;
+  dosenNip: string;
+}
+
+export interface MasterTugas {
+  id: string;
+  kelasId: string;
+  judul: string;
+  deskripsi: string;
+  lampiran: string | null;
+  deadline: Date;
+  deadlineText: string;
+  category: string;
+}
+
+export interface MasterKehadiran {
+  id: string;
+  kelasId: string;
+  namaMatkul: string;
+  studentName: string;
+  nomor: number;
+  topik: string;
+  tanggal: string;
+  status: string;
+}
+
+export interface MasterEvaluasi {
+  id: string;
+  kelasId: string;
+  studentName: string;
+  nilaiAkhir: number;
+  trenKehadiran: string;
+  indikatorRisiko: string;
+  insightPerforma: string;
+  catatanDosen: string | null;
+  dateText: string;
+  lecturerName: string;
+  messages: string;
+  lecturerNote: string | null;
+}
+
+export interface MasterPenilaian {
+  id: string;
+  kelasId: string;
+  studentName: string;
+  taskName: string;
+  score: number;
+}
+
+export interface MasterPasswordSetting {
+  id: number;
+  dosenId: string;
+  passwordHash: string;
+  notifikasiEmail: boolean;
+  notifikasiSistem: boolean;
+}
+
+export interface MataKuliahNilai {
+  nomor: number;
+  nama: string;
+  kode: string;
+  sks: number;
+  grade: string;
+}
+
+export interface MasterNilaiSemester {
+  judul: string;
+  tahunAjaran: string;
+  ips: number;
+  totalSks: number;
+  matkul: MataKuliahNilai[];
+}
+
+// --- 1. DATA USERS DUMMY ---
+const DEFAULT_USERS: UserSeedData[] = [
   {
     id: 'user-mhs-001',
     name: 'Nama Mahasiswa',
@@ -61,7 +169,6 @@ const DEFAULT_USERS = [
     prodi: 'Teknik Informatika',
     createdAt: '2026-10-14T15:28:13.659Z',
   },
-  // Mahasiswa Sheren Annabelle dari Web
   {
     id: 'user-mhs-sheren',
     name: 'Sheren Annabelle',
@@ -171,8 +278,8 @@ const DEFAULT_USERS = [
   },
 ];
 
-// 2. Data Master Mata Kuliah (Mobile + Web)
-const MASTER_MATKUL = [
+// --- 2. DATA MASTER MATA KULIAH ---
+const MASTER_MATKUL: MasterMatkul[] = [
   { id: 'mk-ai', kode: 'VTI51366', nama: 'Kecerdasan Buatan', sks: 3 },
   { id: 'mk-web', kode: 'VTI51329', nama: 'Pemrograman Web', sks: 4 },
   { id: 'mk-basdat', kode: 'VTI51250', nama: 'Basis Data Terdistribusi', sks: 4 },
@@ -182,12 +289,11 @@ const MASTER_MATKUL = [
   { id: 'mk-kwu', kode: 'VTI51310', nama: 'Kewirausahaan', sks: 2 },
   { id: 'mk-uiux', kode: 'VTI51315', nama: 'UI/UX Design', sks: 3 },
   { id: 'mk-iot', kode: 'VTI51340', nama: 'Internet of Things (IoT)', sks: 3 },
-  // Dari db_eduinsight Web:
   { id: 'mk-pfa', kode: 'PFA3', nama: 'Pemrograman Framework', sks: 3 },
 ];
 
-// 3. Data Master Kelas (Mobile + Web)
-const MASTER_KELAS = [
+// --- 3. DATA MASTER KELAS ---
+const MASTER_KELAS: MasterKelas[] = [
   {
     id: 'kelas-ai',
     kodeGabung: 'VTI51366',
@@ -305,7 +411,6 @@ const MASTER_KELAS = [
     matkulKode: 'VTI51340',
     dosenNip: '198709232014041001',
   },
-  // Dari db_eduinsight Web (Kelas PFA3):
   {
     id: 'kelas-pfa',
     kodeGabung: 'PFA3',
@@ -317,17 +422,17 @@ const MASTER_KELAS = [
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'PFA3',
-    dosenNip: '198503152010121002', // Dr. Ahmad Sahroni, M.Kom.
+    dosenNip: '198503152010121002',
   },
 ];
 
-// 4. Data Master Tugas (Mobile + Web)
-const MASTER_TUGAS = [
+// --- 4. DATA MASTER TUGAS ---
+const MASTER_TUGAS: MasterTugas[] = [
   {
     id: 'tugas-kwu-01',
     kelasId: 'kelas-kwu',
     judul: 'Tugas 1 - Quiziz',
-    deskripsi: 'Kerjakan kuis Kewirausahaan melalui Quizizz materi BMC (Business Model Canvas).\n\nâ€¢ Kerjakan tepat waktu sebelum tenggat\nâ€¢ Screenshot nilai akhir kuis dan lampirkan sebagai bukti pengerjaan tugas.',
+    deskripsi: 'Kerjakan kuis Kewirausahaan melalui Quizizz materi BMC (Business Model Canvas).\n\n• Kerjakan tepat waktu sebelum tenggat\n• Screenshot nilai akhir kuis dan lampirkan sebagai bukti pengerjaan tugas.',
     lampiran: 'Panduan_Kuis_Kewirausahaan.pdf',
     deadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
     deadlineText: 'Hari ini, 23.59',
@@ -337,7 +442,7 @@ const MASTER_TUGAS = [
     id: 'tugas-uiux-01',
     kelasId: 'kelas-uiux',
     judul: 'Tugas 1 - Analisa Aplikasi',
-    deskripsi: 'Lakukan analisa heuristik pada aplikasi mobile EduTech pilihanmu.\n\nâ€¢ Identifikasi 5 masalah usability beserta rekomendasi perbaikannya\nâ€¢ Kumpulkan dalam format PDF rangkuman laporan.',
+    deskripsi: 'Lakukan analisa heuristik pada aplikasi mobile EduTech pilihanmu.\n\n• Identifikasi 5 masalah usability beserta rekomendasi perbaikannya\n• Kumpulkan dalam format PDF rangkuman laporan.',
     lampiran: 'Template_Analisa_Heuristik.pdf',
     deadline: new Date(Date.now() + 5 * 60 * 60 * 1000),
     deadlineText: 'Hari ini, 23.59',
@@ -347,7 +452,7 @@ const MASTER_TUGAS = [
     id: 'tugas-iot-01',
     kelasId: 'kelas-iot',
     judul: 'Pertemuan Pertama',
-    deskripsi: 'Buat rangkuman singkat mengenai komponen mikrokontroler ESP32 dan protokol MQTT.\n\nâ€¢ Format: PDF (maksimal 2 halaman)\nâ€¢ Unggah dokumen hasil resume pada bagian Tugas Saya di bawah.',
+    deskripsi: 'Buat rangkuman singkat mengenai komponen mikrokontroler ESP32 dan protokol MQTT.\n\n• Format: PDF (maksimal 2 halaman)\n• Unggah dokumen hasil resume pada bagian Tugas Saya di bawah.',
     lampiran: null,
     deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
     deadlineText: 'Rabu, 23.59',
@@ -403,7 +508,6 @@ const MASTER_TUGAS = [
     deadlineText: 'Diserahkan',
     category: 'selesai',
   },
-  // Dari db_eduinsight Web:
   {
     id: 'tugas-pfa-01',
     kelasId: 'kelas-pfa',
@@ -416,11 +520,8 @@ const MASTER_TUGAS = [
   },
 ];
 
-// 5. Data Kehadiran Mahasiswa (Semester 4 - Semua Mata Kuliah)
-// IPS Riwayat: Smt1=3.80, Smt2=4.00, Smt3=3.90 | Kehadiran rata-rata smt4 ~91%
-const MASTER_KEHADIRAN = [
-
-  // â”€â”€â”€ Kecerdasan Buatan (Senin) â”€â”€â”€
+// --- 5. DATA KEHADIRAN MAHASISWA ---
+const MASTER_KEHADIRAN: MasterKehadiran[] = [
   { id: 'khd-ai-1', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengenalan AI & Sejarah', tanggal: 'Senin, 28 Sep 2026', status: 'Hadir' },
   { id: 'khd-ai-2', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 2, topik: 'Agen Cerdas & Lingkungan', tanggal: 'Senin, 5 Okt 2026', status: 'Hadir' },
   { id: 'khd-ai-3', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 3, topik: 'Pencarian Buta (BFS/DFS)', tanggal: 'Senin, 12 Okt 2026', status: 'Izin' },
@@ -428,7 +529,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-ai-5', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 5, topik: 'Logika Proposisi', tanggal: 'Senin, 26 Okt 2026', status: 'Hadir' },
   { id: 'khd-ai-6', kelasId: 'kelas-ai', namaMatkul: 'Kecerdasan Buatan', studentName: 'Brooke Everly', nomor: 6, topik: 'Machine Learning Dasar', tanggal: 'Senin, 2 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Pemrograman Web (Selasa) â”€â”€â”€
   { id: 'khd-web-1', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 1, topik: 'Dasar HTML & CSS', tanggal: 'Selasa, 29 Sep 2026', status: 'Alpa' },
   { id: 'khd-web-2', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 2, topik: 'JavaScript ES6+ & DOM', tanggal: 'Selasa, 6 Okt 2026', status: 'Hadir' },
   { id: 'khd-web-3', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 3, topik: 'React: Komponen & Props', tanggal: 'Selasa, 13 Okt 2026', status: 'Hadir' },
@@ -436,7 +536,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-web-5', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 5, topik: 'REST API & Fetch', tanggal: 'Selasa, 27 Okt 2026', status: 'Hadir' },
   { id: 'khd-web-6', kelasId: 'kelas-web', namaMatkul: 'Pemrograman Web', studentName: 'Brooke Everly', nomor: 6, topik: 'Deployment & Build', tanggal: 'Selasa, 3 Nov 2026', status: 'Sakit' },
 
-  // â”€â”€â”€ Basis Data Terdistribusi (Rabu) â”€â”€â”€
   { id: 'khd-bd-1', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data Terdistribusi', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengenalan Basis Data', tanggal: 'Rabu, 1 Okt 2026', status: 'Hadir' },
   { id: 'khd-bd-2', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data Terdistribusi', studentName: 'Brooke Everly', nomor: 2, topik: 'Model Data & ERD', tanggal: 'Rabu, 8 Okt 2026', status: 'Hadir' },
   { id: 'khd-bd-3', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data Terdistribusi', studentName: 'Brooke Everly', nomor: 3, topik: 'Normalisasi & Relasi', tanggal: 'Rabu, 15 Okt 2026', status: 'Hadir' },
@@ -444,7 +543,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-bd-5', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data Terdistribusi', studentName: 'Brooke Everly', nomor: 5, topik: 'Join & Agregasi Tabel', tanggal: 'Rabu, 29 Okt 2026', status: 'Sakit' },
   { id: 'khd-bd-6', kelasId: 'kelas-basdat', namaMatkul: 'Basis Data Terdistribusi', studentName: 'Brooke Everly', nomor: 6, topik: 'Replikasi & Sharding', tanggal: 'Rabu, 5 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Keamanan Siber & Jaringan (Kamis) â”€â”€â”€
   { id: 'khd-cyber-1', kelasId: 'kelas-cyber', namaMatkul: 'Keamanan Siber & Jaringan', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengantar Keamanan Siber', tanggal: 'Kamis, 2 Okt 2026', status: 'Hadir' },
   { id: 'khd-cyber-2', kelasId: 'kelas-cyber', namaMatkul: 'Keamanan Siber & Jaringan', studentName: 'Brooke Everly', nomor: 2, topik: 'Kriptografi Simetris', tanggal: 'Kamis, 9 Okt 2026', status: 'Hadir' },
   { id: 'khd-cyber-3', kelasId: 'kelas-cyber', namaMatkul: 'Keamanan Siber & Jaringan', studentName: 'Brooke Everly', nomor: 3, topik: 'Kriptografi Asimetris', tanggal: 'Kamis, 16 Okt 2026', status: 'Hadir' },
@@ -452,7 +550,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-cyber-5', kelasId: 'kelas-cyber', namaMatkul: 'Keamanan Siber & Jaringan', studentName: 'Brooke Everly', nomor: 5, topik: 'Firewall & IDS', tanggal: 'Kamis, 30 Okt 2026', status: 'Hadir' },
   { id: 'khd-cyber-6', kelasId: 'kelas-cyber', namaMatkul: 'Keamanan Siber & Jaringan', studentName: 'Brooke Everly', nomor: 6, topik: 'Penetration Testing', tanggal: 'Kamis, 6 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Rekayasa Perangkat Lunak (Jumat) â”€â”€â”€
   { id: 'khd-rpl-1', kelasId: 'kelas-rpl', namaMatkul: 'Rekayasa Perangkat Lunak', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengantar RPL & SDLC', tanggal: 'Jumat, 3 Okt 2026', status: 'Hadir' },
   { id: 'khd-rpl-2', kelasId: 'kelas-rpl', namaMatkul: 'Rekayasa Perangkat Lunak', studentName: 'Brooke Everly', nomor: 2, topik: 'Analisis Kebutuhan', tanggal: 'Jumat, 10 Okt 2026', status: 'Hadir' },
   { id: 'khd-rpl-3', kelasId: 'kelas-rpl', namaMatkul: 'Rekayasa Perangkat Lunak', studentName: 'Brooke Everly', nomor: 3, topik: 'UML & Use Case Diagram', tanggal: 'Jumat, 17 Okt 2026', status: 'Hadir' },
@@ -460,7 +557,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-rpl-5', kelasId: 'kelas-rpl', namaMatkul: 'Rekayasa Perangkat Lunak', studentName: 'Brooke Everly', nomor: 5, topik: 'Testing & Validasi', tanggal: 'Jumat, 31 Okt 2026', status: 'Sakit' },
   { id: 'khd-rpl-6', kelasId: 'kelas-rpl', namaMatkul: 'Rekayasa Perangkat Lunak', studentName: 'Brooke Everly', nomor: 6, topik: 'Agile & Scrum', tanggal: 'Jumat, 7 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Statistika Komputasi (Jumat) â”€â”€â”€
   { id: 'khd-stat-1', kelasId: 'kelas-stat', namaMatkul: 'Statistika Komputasi', studentName: 'Brooke Everly', nomor: 1, topik: 'Statistika Deskriptif', tanggal: 'Jumat, 3 Okt 2026', status: 'Hadir' },
   { id: 'khd-stat-2', kelasId: 'kelas-stat', namaMatkul: 'Statistika Komputasi', studentName: 'Brooke Everly', nomor: 2, topik: 'Distribusi Probabilitas', tanggal: 'Jumat, 10 Okt 2026', status: 'Hadir' },
   { id: 'khd-stat-3', kelasId: 'kelas-stat', namaMatkul: 'Statistika Komputasi', studentName: 'Brooke Everly', nomor: 3, topik: 'Uji Hipotesis', tanggal: 'Jumat, 17 Okt 2026', status: 'Izin' },
@@ -468,7 +564,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-stat-5', kelasId: 'kelas-stat', namaMatkul: 'Statistika Komputasi', studentName: 'Brooke Everly', nomor: 5, topik: 'ANOVA & Korelasi', tanggal: 'Jumat, 31 Okt 2026', status: 'Hadir' },
   { id: 'khd-stat-6', kelasId: 'kelas-stat', namaMatkul: 'Statistika Komputasi', studentName: 'Brooke Everly', nomor: 6, topik: 'Analisis Cluster', tanggal: 'Jumat, 7 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Kewirausahaan (Senin) â”€â”€â”€
   { id: 'khd-kwu-1', kelasId: 'kelas-kwu', namaMatkul: 'Kewirausahaan', studentName: 'Brooke Everly', nomor: 1, topik: 'Konsep Dasar Kewirausahaan', tanggal: 'Senin, 29 Sep 2026', status: 'Hadir' },
   { id: 'khd-kwu-2', kelasId: 'kelas-kwu', namaMatkul: 'Kewirausahaan', studentName: 'Brooke Everly', nomor: 2, topik: 'Business Model Canvas', tanggal: 'Senin, 6 Okt 2026', status: 'Hadir' },
   { id: 'khd-kwu-3', kelasId: 'kelas-kwu', namaMatkul: 'Kewirausahaan', studentName: 'Brooke Everly', nomor: 3, topik: 'Analisis Pasar & Kompetitor', tanggal: 'Senin, 13 Okt 2026', status: 'Hadir' },
@@ -476,7 +571,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-kwu-5', kelasId: 'kelas-kwu', namaMatkul: 'Kewirausahaan', studentName: 'Brooke Everly', nomor: 5, topik: 'Pitching & Presentasi', tanggal: 'Senin, 27 Okt 2026', status: 'Hadir' },
   { id: 'khd-kwu-6', kelasId: 'kelas-kwu', namaMatkul: 'Kewirausahaan', studentName: 'Brooke Everly', nomor: 6, topik: 'Studi Kasus Startup', tanggal: 'Senin, 3 Nov 2026', status: 'Izin' },
 
-  // â”€â”€â”€ UI/UX Design (Selasa) â”€â”€â”€
   { id: 'khd-uiux-1', kelasId: 'kelas-uiux', namaMatkul: 'UI/UX Design', studentName: 'Brooke Everly', nomor: 1, topik: 'Prinsip Desain UI', tanggal: 'Selasa, 30 Sep 2026', status: 'Hadir' },
   { id: 'khd-uiux-2', kelasId: 'kelas-uiux', namaMatkul: 'UI/UX Design', studentName: 'Brooke Everly', nomor: 2, topik: 'User Research & Persona', tanggal: 'Selasa, 7 Okt 2026', status: 'Hadir' },
   { id: 'khd-uiux-3', kelasId: 'kelas-uiux', namaMatkul: 'UI/UX Design', studentName: 'Brooke Everly', nomor: 3, topik: 'Wireframing & Prototyping', tanggal: 'Selasa, 14 Okt 2026', status: 'Hadir' },
@@ -484,7 +578,6 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-uiux-5', kelasId: 'kelas-uiux', namaMatkul: 'UI/UX Design', studentName: 'Brooke Everly', nomor: 5, topik: 'Desain Figma High-Fi', tanggal: 'Selasa, 28 Okt 2026', status: 'Alpa' },
   { id: 'khd-uiux-6', kelasId: 'kelas-uiux', namaMatkul: 'UI/UX Design', studentName: 'Brooke Everly', nomor: 6, topik: 'Usability Testing', tanggal: 'Selasa, 4 Nov 2026', status: 'Hadir' },
 
-  // â”€â”€â”€ Internet of Things (Rabu) â”€â”€â”€
   { id: 'khd-iot-1', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 1, topik: 'Pengenalan IoT & Arsitektur', tanggal: 'Rabu, 1 Okt 2026', status: 'Hadir' },
   { id: 'khd-iot-2', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 2, topik: 'Mikrokontroler ESP32', tanggal: 'Rabu, 8 Okt 2026', status: 'Hadir' },
   { id: 'khd-iot-3', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 3, topik: 'Sensor DHT22 & Aktuator', tanggal: 'Rabu, 15 Okt 2026', status: 'Hadir' },
@@ -492,12 +585,11 @@ const MASTER_KEHADIRAN = [
   { id: 'khd-iot-5', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 5, topik: 'Konektivitas WiFi & Cloud', tanggal: 'Rabu, 29 Okt 2026', status: 'Hadir' },
   { id: 'khd-iot-6', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 6, topik: 'Dashboard Monitoring IoT', tanggal: 'Rabu, 5 Nov 2026', status: 'Izin' },
 
-  // â”€â”€â”€ Pemrograman Framework (Web - Sheren) â”€â”€â”€
   { id: 'khd-pfa-1', kelasId: 'kelas-pfa', namaMatkul: 'Pemrograman Framework', studentName: 'Sheren', nomor: 1, topik: 'Pengenalan Express & MVC', tanggal: '2026-06-07', status: 'Hadir' },
 ];
 
-// 6. Data Dummy Evaluasi AI & Dosen (Mobile + Web)
-const MASTER_EVALUASI = [
+// --- 6. DATA DUMMY EVALUASI AI & DOSEN ---
+const MASTER_EVALUASI: MasterEvaluasi[] = [
   {
     id: 'eval-01',
     kelasId: 'kelas-ai',
@@ -571,7 +663,6 @@ const MASTER_EVALUASI = [
     ]),
     lecturerNote: null,
   },
-  // Dari db_eduinsight Web (Sheren Annabelle):
   {
     id: 'eval-web-01',
     kelasId: 'kelas-pfa',
@@ -593,8 +684,8 @@ const MASTER_EVALUASI = [
   },
 ];
 
-// 7. Data Master Penilaian (Dari db_eduinsight Web + Mobile)
-const MASTER_PENILAIAN = [
+// --- 7. DATA MASTER PENILAIAN ---
+const MASTER_PENILAIAN: MasterPenilaian[] = [
   {
     id: 'penilaian-01',
     kelasId: 'kelas-pfa',
@@ -618,8 +709,8 @@ const MASTER_PENILAIAN = [
   },
 ];
 
-// 8. Data Password Settings Dosen (Dari db_eduinsight Web)
-const MASTER_PASSWORD_SETTING = [
+// --- 8. DATA PASSWORD SETTING DOSEN ---
+const MASTER_PASSWORD_SETTING: MasterPasswordSetting[] = [
   {
     id: 1,
     dosenId: 'user-dsn-001',
@@ -629,24 +720,85 @@ const MASTER_PASSWORD_SETTING = [
   },
 ];
 
-function formatUser(u) {
+// --- 9. DATA NILAI SEMESTER (1-4) ---
+const MASTER_NILAI_SEMESTER: MasterNilaiSemester[] = [
+  {
+    judul: 'Semester Empat',
+    tahunAjaran: 'Genap Tahun Ajaran 2024/2025',
+    ips: 3.78,
+    totalSks: 24,
+    matkul: [
+      { nomor: 7, nama: 'Kewirausahaan', kode: 'VTI51310', sks: 2, grade: 'A' },
+      { nomor: 6, nama: 'UI/UX Design', kode: 'VTI51315', sks: 3, grade: 'A+' },
+      { nomor: 5, nama: 'Internet of Things (IoT)', kode: 'VTI51340', sks: 3, grade: 'B+' },
+      { nomor: 4, nama: 'Statistika Komputasi', kode: 'VTI51389', sks: 3, grade: 'B+' },
+      { nomor: 3, nama: 'Rekayasa Perangkat Lunak', kode: 'VTI51375', sks: 4, grade: 'A' },
+      { nomor: 2, nama: 'Keamanan Siber & Jaringan', kode: 'VTI51322', sks: 4, grade: 'A' },
+      { nomor: 1, nama: 'Kecerdasan Buatan', kode: 'VTI51366', sks: 3, grade: 'A+' },
+    ],
+  },
+  {
+    judul: 'Semester Tiga',
+    tahunAjaran: 'Ganjil Tahun Ajaran 2024/2025',
+    ips: 3.90,
+    totalSks: 20,
+    matkul: [
+      { nomor: 4, nama: 'Pemrograman Web', kode: 'VTI51329', sks: 4, grade: 'A+' },
+      { nomor: 3, nama: 'Basis Data Terdistribusi', kode: 'VTI51250', sks: 4, grade: 'A' },
+      { nomor: 2, nama: 'Jaringan Komputer', kode: 'VTI51261', sks: 3, grade: 'B+' },
+      { nomor: 1, nama: 'Interaksi Manusia & Komputer', kode: 'VTI51270', sks: 3, grade: 'A' },
+    ],
+  },
+  {
+    judul: 'Semester Dua',
+    tahunAjaran: 'Genap Tahun Ajaran 2023/2024',
+    ips: 4.00,
+    totalSks: 21,
+    matkul: [
+      { nomor: 3, nama: 'Struktur Data & Algoritma', kode: 'VTI51180', sks: 4, grade: 'A' },
+      { nomor: 2, nama: 'Sistem Operasi', kode: 'VTI51191', sks: 3, grade: 'A' },
+      { nomor: 1, nama: 'Pemrograman Mobile', kode: 'VTI51203', sks: 3, grade: 'A+' },
+    ],
+  },
+  {
+    judul: 'Semester Satu',
+    tahunAjaran: 'Ganjil Tahun Ajaran 2023/2024',
+    ips: 3.80,
+    totalSks: 20,
+    matkul: [
+      { nomor: 4, nama: 'Algoritma & Pemrograman', kode: 'VTI51101', sks: 4, grade: 'A' },
+      { nomor: 3, nama: 'Matematika Dasar', kode: 'VTI51102', sks: 3, grade: 'A' },
+      { nomor: 2, nama: 'Logika & Pemrograman', kode: 'VTI51103', sks: 3, grade: 'B+' },
+      { nomor: 1, nama: 'Pengantar Teknologi Informasi', kode: 'VTI51104', sks: 3, grade: 'A+' },
+    ],
+  },
+];
+
+// --- FORMATTER FUNCTION ---
+function formatUser(u: any) {
   if (!u) return null;
 
-  let alternativeEmails = [];
+  let alternativeEmails: string[] = [];
   if (u.alternativeEmails) {
     try {
-      alternativeEmails = JSON.parse(u.alternativeEmails);
+      const parsed = typeof u.alternativeEmails === 'string' 
+        ? JSON.parse(u.alternativeEmails) 
+        : u.alternativeEmails;
+      alternativeEmails = Array.isArray(parsed) ? parsed : [parsed];
     } catch (_) {
-      alternativeEmails = [u.alternativeEmails];
+      alternativeEmails = [String(u.alternativeEmails)];
     }
   }
 
-  let mataKuliah = [];
+  let mataKuliah: string[] = [];
   if (u.mataKuliah) {
     try {
-      mataKuliah = JSON.parse(u.mataKuliah);
+      const parsed = typeof u.mataKuliah === 'string' 
+        ? JSON.parse(u.mataKuliah) 
+        : u.mataKuliah;
+      mataKuliah = Array.isArray(parsed) ? parsed : [parsed];
     } catch (_) {
-      mataKuliah = [u.mataKuliah];
+      mataKuliah = [String(u.mataKuliah)];
     }
   }
 
@@ -661,7 +813,7 @@ function formatUser(u) {
 /**
  * Reset dan sync database MySQL eduinsight_db dengan data master (Mobile + Web)
  */
-async function syncDatabaseWithFrontend() {
+async function syncDatabaseWithFrontend(): Promise<void> {
   try {
     // 1. Sync Users
     for (const u of DEFAULT_USERS) {
@@ -875,17 +1027,17 @@ async function syncDatabaseWithFrontend() {
       });
     }
 
-    console.log('âœ… Sinkronisasi Database MySQL EduInsight (Mobile + Web) Berhasil!');
-  } catch (err) {
-    console.error('âŒ Database sync error:', err.message);
+    console.log('✅ Sinkronisasi Database MySQL EduInsight (Mobile + Web) Berhasil!');
+  } catch (err: any) {
+    console.error('❌ Database sync error:', err.message);
   }
 }
 
-async function initDatabase() {
+async function initDatabase(): Promise<void> {
   await syncDatabaseWithFrontend();
 }
 
-async function findUserByEmail(email) {
+async function findUserByEmail(email: string | null | undefined) {
   if (!email) return null;
   const target = email.trim().toLowerCase();
 
@@ -905,12 +1057,15 @@ async function findUserByEmail(email) {
   for (const u of allUsers) {
     if (u.alternativeEmails) {
       try {
-        const altList = JSON.parse(u.alternativeEmails);
-        if (Array.isArray(altList) && altList.some((e) => e.toLowerCase() === target)) {
+        const altList = typeof u.alternativeEmails === 'string' 
+          ? JSON.parse(u.alternativeEmails) 
+          : u.alternativeEmails;
+
+        if (Array.isArray(altList) && altList.some((e: string) => e.toLowerCase() === target)) {
           return formatUser(u);
         }
       } catch (e) {
-        if (u.alternativeEmails.toLowerCase().includes(target)) {
+        if (String(u.alternativeEmails).toLowerCase().includes(target)) {
           return formatUser(u);
         }
       }
@@ -920,7 +1075,7 @@ async function findUserByEmail(email) {
   return null;
 }
 
-async function findUserById(id) {
+async function findUserById(id: string) {
   if (!id) return null;
   const user = await prisma.user.findUnique({
     where: { id },
@@ -935,7 +1090,7 @@ async function getUsers() {
   return users.map(formatUser);
 }
 
-async function createUser(userData) {
+async function createUser(userData: any) {
   const created = await prisma.user.create({
     data: {
       id: userData.id || `user-${Date.now()}`,
@@ -955,7 +1110,7 @@ async function createUser(userData) {
   return formatUser(created);
 }
 
-async function updateUser(id, updateData) {
+async function updateUser(id: string, updateData: any) {
   const updated = await prisma.user.update({
     where: { id },
     data: updateData,
@@ -963,11 +1118,11 @@ async function updateUser(id, updateData) {
   return formatUser(updated);
 }
 
-async function deleteUser(id) {
+async function deleteUser(id: string) {
   return await prisma.user.delete({ where: { id } });
 }
 
-async function updateUserPassword(email, newHashedPassword) {
+async function updateUserPassword(email: string, newHashedPassword: string) {
   const user = await findUserByEmail(email);
   if (!user) return null;
 
@@ -982,15 +1137,15 @@ async function updateUserPassword(email, newHashedPassword) {
   return formatUser(updated);
 }
 
-async function blacklistToken(token) {
+async function blacklistToken(token: string) {
   try {
     await prisma.tokenBlacklist.create({
       data: { token },
     });
-  } catch (err) { }
+  } catch (err) {}
 }
 
-async function isTokenBlacklisted(token) {
+async function isTokenBlacklisted(token: string) {
   if (!token) return false;
   const found = await prisma.tokenBlacklist.findUnique({
     where: { token },
@@ -999,14 +1154,14 @@ async function isTokenBlacklisted(token) {
 }
 
 // Catatan (Notes)
-async function getUserNotes(userId) {
+async function getUserNotes(userId: string) {
   return await prisma.note.findMany({
     where: { userId },
     orderBy: { id: 'desc' },
   });
 }
 
-async function createNote(userId, title, body) {
+async function createNote(userId: string, title: string, body: string) {
   return await prisma.note.create({
     data: {
       userId,
@@ -1018,61 +1173,7 @@ async function createNote(userId, title, body) {
   });
 }
 
-// 8. Data Nilai Semester (Semester 1-4)
-const MASTER_NILAI_SEMESTER = [
-  {
-    judul: 'Semester Empat',
-    tahunAjaran: 'Genap Tahun Ajaran 2024/2025',
-    ips: 3.78,
-    totalSks: 24,
-    matkul: [
-      { nomor: 7, nama: 'Kewirausahaan', kode: 'VTI51310', sks: 2, grade: 'A' },
-      { nomor: 6, nama: 'UI/UX Design', kode: 'VTI51315', sks: 3, grade: 'A+' },
-      { nomor: 5, nama: 'Internet of Things (IoT)', kode: 'VTI51340', sks: 3, grade: 'B+' },
-      { nomor: 4, nama: 'Statistika Komputasi', kode: 'VTI51389', sks: 3, grade: 'B+' },
-      { nomor: 3, nama: 'Rekayasa Perangkat Lunak', kode: 'VTI51375', sks: 4, grade: 'A' },
-      { nomor: 2, nama: 'Keamanan Siber & Jaringan', kode: 'VTI51322', sks: 4, grade: 'A' },
-      { nomor: 1, nama: 'Kecerdasan Buatan', kode: 'VTI51366', sks: 3, grade: 'A+' },
-    ],
-  },
-  {
-    judul: 'Semester Tiga',
-    tahunAjaran: 'Ganjil Tahun Ajaran 2024/2025',
-    ips: 3.90,
-    totalSks: 20,
-    matkul: [
-      { nomor: 4, nama: 'Pemrograman Web', kode: 'VTI51329', sks: 4, grade: 'A+' },
-      { nomor: 3, nama: 'Basis Data Terdistribusi', kode: 'VTI51250', sks: 4, grade: 'A' },
-      { nomor: 2, nama: 'Jaringan Komputer', kode: 'VTI51261', sks: 3, grade: 'B+' },
-      { nomor: 1, nama: 'Interaksi Manusia & Komputer', kode: 'VTI51270', sks: 3, grade: 'A' },
-    ],
-  },
-  {
-    judul: 'Semester Dua',
-    tahunAjaran: 'Genap Tahun Ajaran 2023/2024',
-    ips: 4.00,
-    totalSks: 21,
-    matkul: [
-      { nomor: 3, nama: 'Struktur Data & Algoritma', kode: 'VTI51180', sks: 4, grade: 'A' },
-      { nomor: 2, nama: 'Sistem Operasi', kode: 'VTI51191', sks: 3, grade: 'A' },
-      { nomor: 1, nama: 'Pemrograman Mobile', kode: 'VTI51203', sks: 3, grade: 'A+' },
-    ],
-  },
-  {
-    judul: 'Semester Satu',
-    tahunAjaran: 'Ganjil Tahun Ajaran 2023/2024',
-    ips: 3.80,
-    totalSks: 20,
-    matkul: [
-      { nomor: 4, nama: 'Algoritma & Pemrograman', kode: 'VTI51101', sks: 4, grade: 'A' },
-      { nomor: 3, nama: 'Matematika Dasar', kode: 'VTI51102', sks: 3, grade: 'A' },
-      { nomor: 2, nama: 'Logika & Pemrograman', kode: 'VTI51103', sks: 3, grade: 'B+' },
-      { nomor: 1, nama: 'Pengantar Teknologi Informasi', kode: 'VTI51104', sks: 3, grade: 'A+' },
-    ],
-  },
-];
-
-module.exports = {
+export {
   prisma,
   initDatabase,
   getUsers,
@@ -1096,4 +1197,3 @@ module.exports = {
   MASTER_PASSWORD_SETTING,
   MASTER_NILAI_SEMESTER,
 };
-

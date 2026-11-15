@@ -1,22 +1,22 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
-const express = require('express');
-const cors = require('cors');
-const { initDatabase } = require('./data/database');
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import { initDatabase } from './data/database.js';
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const classRoutes = require('./routes/classRoutes');
-const kehadiranRoutes = require('./routes/kehadiranRoutes');
-const penilaianRoutes = require('./routes/penilaianRoutes');
-const tugasRoutes = require('./routes/tugasRoutes');
-const evaluasiRoutes = require('./routes/evaluasiRoutes');
-const passwordSettingsRoutes = require('./routes/passwordSettingRoutes');
-const noteRoutes = require('./routes/noteRoutes');
-const nilaiSemesterRoutes = require('./routes/nilaiSemesterRoutes');
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import classRoutes from './routes/classRoutes.js';
+import kehadiranRoutes from './routes/kehadiranRoutes.js';
+import penilaianRoutes from './routes/penilaianRoutes.js';
+import tugasRoutes from './routes/tugasRoutes.js';
+import evaluasiRoutes from './routes/evaluasiRoutes.js';
+import passwordSettingRoutes from './routes/passwordSettingRoutes.js';
+import noteRoutes from './routes/noteRoutes.js';
+import nilaiSemesterRoutes from './routes/nilaiSemesterRoutes.js';
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
 app.use(
@@ -40,7 +40,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'EduInsight API is running on MySQL (eduinsight_db)',
@@ -56,12 +56,12 @@ app.use('/api/kehadiran', kehadiranRoutes);
 app.use('/api/penilaian', penilaianRoutes);
 app.use('/api/tugas', tugasRoutes);
 app.use('/api/evaluasi', evaluasiRoutes);
-app.use('/api/password-setting', passwordSettingsRoutes);
+app.use('/api/password-setting', passwordSettingRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/nilai-semester', nilaiSemesterRoutes);
 
 // Fallback 404
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: `Endpoint ${req.originalUrl} tidak ditemukan.`,
@@ -69,12 +69,12 @@ app.use((req, res) => {
 });
 
 // Error Handler
-app.use((err, req, res, next) => {
-  console.error('[SERVER ERROR]:', err.stack);
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[SERVER ERROR]:', err?.stack || err);
   res.status(500).json({
     success: false,
     message: 'Internal server error.',
-    error: err.message,
+    error: err?.message || err,
   });
 });
 
@@ -84,7 +84,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log('');
       console.log('═══════════════════════════════════════════');
-      console.log('  🎓 EduInsight Backend API');
+      console.log('  🎓 EduInsight Backend API (TypeScript)');
       console.log(`  🚀 Server running on http://localhost:${PORT}`);
       console.log('  🗄️ Database: MySQL XAMPP (eduinsight_db)');
       console.log('  📋 All Routes Integrated & Ready');
@@ -98,4 +98,4 @@ async function startServer() {
 
 startServer();
 
-module.exports = app;
+export default app;

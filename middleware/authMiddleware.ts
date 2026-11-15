@@ -1,9 +1,26 @@
-const jwt = require('jsonwebtoken');
-const { isTokenBlacklisted, findUserById } = require('../data/database');
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
+import { isTokenBlacklisted, findUserById } from '../data/database.js'; 
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eduinsight-super-secret-key-pbl-2026';
 
-async function authMiddleware(req, res, next) {
+// Memperluas tipe Request Express agar mengenali properti .user dan .token
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: any;
+    name?: string;
+    email?: string;
+    role?: string;
+    nim?: string;
+    nip?: string;
+    fakultas?: string;
+    prodi?: string;
+    [key: string]: any;
+  };
+  token?: string;
+}
+
+export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -24,7 +41,7 @@ async function authMiddleware(req, res, next) {
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload & { id: any };
     const user = await findUserById(decoded.id);
 
     if (!user) {
@@ -46,8 +63,8 @@ async function authMiddleware(req, res, next) {
     };
     req.token = token;
 
-    next();
-  } catch (error) {
+    return next();
+  } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -61,15 +78,15 @@ async function authMiddleware(req, res, next) {
   }
 }
 
-function optionalAuthMiddleware(req, res, next) {
+export async function optionalAuthMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();
   }
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = findUserById(decoded.id);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload & { id: any };
+    const user = await findUserById(decoded.id);
     if (user) {
       req.user = user;
       req.token = token;
@@ -77,7 +94,5 @@ function optionalAuthMiddleware(req, res, next) {
   } catch (e) {
     // Ignore invalid token for optional auth
   }
-  next();
+  return next();
 }
-
-module.exports = { authMiddleware, optionalAuthMiddleware, JWT_SECRET };

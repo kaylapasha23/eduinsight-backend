@@ -1,14 +1,16 @@
-const { updateUserPassword, findUserByEmail, getUsers } = require('../data/database');
-const bcrypt = require('bcryptjs');
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import { updateUserPassword, findUserByEmail, getUsers } from '../data/database.js';
+import bcrypt from 'bcryptjs';
 
-exports.updatePasswordSettings = async (req, res) => {
+export const updatePasswordSettings = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   try {
     const { password_baru, email } = req.body;
 
     let targetEmail = email;
 
     if (!targetEmail) {
-      const allUsers = await getUsers();
+      const allUsers: any[] = await getUsers();
       const dosenUser = allUsers.find((u) => u.role === 'dosen' || u.id === 'user-dsn-001');
       targetEmail = dosenUser ? dosenUser.email : 'dosen@eduinsight.ac.id';
     }
@@ -31,8 +33,12 @@ exports.updatePasswordSettings = async (req, res) => {
       success: true,
       message: 'Pengaturan akun dan kata sandi berhasil disimpan! Silakan login kembali dengan password baru Anda.',
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[ERROR UPDATE PASSWORD SETTINGS]:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
+};
+
+export default {
+  updatePasswordSettings,
 };

@@ -1,7 +1,35 @@
-const db = require('../config/db');
+import db from '../config/db';
+
+// Interface untuk struktur data Kelas
+export interface ClassItem {
+  id: number;
+  code: string;
+  name: string;
+  sks: number;
+  semester: number;
+  dosen_id: number | null;
+  dosen_name: string | null;
+  class_room: string | null;
+  schedule_day: string;
+  schedule_time: string;
+  created_at: string | Date;
+}
+
+// Interface untuk data saat pembuatan (create) kelas baru
+export interface CreateClassDTO {
+  code: string;
+  name: string;
+  sks?: number;
+  semester?: number;
+  dosen_id?: number | null;
+  dosen_name?: string | null;
+  class_room?: string | null;
+  schedule_day: string;
+  schedule_time: string;
+}
 
 // In-memory fallback for Classes when MySQL is offline
-let fallbackClasses = [
+let fallbackClasses: ClassItem[] = [
   {
     id: 1,
     code: 'VTI51366',
@@ -121,11 +149,11 @@ let fallbackClasses = [
   },
 ];
 
-const ClassModel = {
+export const ClassModel = {
   // Mengambil semua data kelas & jadwal
-  getAll: async () => {
+  getAll: async (): Promise<ClassItem[]> => {
     try {
-      const [rows] = await db.query(`
+      const [rows] = (await db.query(`
         SELECT 
           k.id,
           k.code,
@@ -141,7 +169,7 @@ const ClassModel = {
         FROM kelas k
         LEFT JOIN users u ON k.dosen_id = u.id
         ORDER BY FIELD(k.schedule_day, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'), k.id ASC
-      `);
+      `)) as [ClassItem[], any];
       return rows;
     } catch (_) {
       return fallbackClasses;
@@ -149,19 +177,19 @@ const ClassModel = {
   },
 
   // Mengambil kelas berdasarkan ID
-  getById: async (id) => {
+  getById: async (id: number | string): Promise<ClassItem | undefined> => {
     try {
-      const [rows] = await db.query('SELECT * FROM kelas WHERE id = ?', [id]);
+      const [rows] = (await db.query('SELECT * FROM kelas WHERE id = ?', [id])) as [ClassItem[], any];
       return rows[0];
     } catch (_) {
-      return fallbackClasses.find((k) => k.id == id);
+      return fallbackClasses.find((k) => k.id == Number(id));
     }
   },
 
   // Mengambil kelas berdasarkan hari jadwal (Filter Hari)
-  getByDay: async (day) => {
+  getByDay: async (day: string): Promise<ClassItem[]> => {
     try {
-      const [rows] = await db.query('SELECT * FROM kelas WHERE schedule_day = ?', [day]);
+      const [rows] = (await db.query('SELECT * FROM kelas WHERE schedule_day = ?', [day])) as [ClassItem[], any];
       return rows;
     } catch (_) {
       return fallbackClasses.filter((k) => k.schedule_day === day);
@@ -169,13 +197,13 @@ const ClassModel = {
   },
 
   // Menambahkan data kelas baru
-  create: async (data) => {
+  create: async (data: CreateClassDTO): Promise<number> => {
     const { code, name, sks, semester, dosen_id, dosen_name, class_room, schedule_day, schedule_time } = data;
     try {
-      const [result] = await db.query(
+      const [result]: any = await db.query(
         `INSERT INTO kelas (code, name, sks, semester, dosen_id, dosen_name, class_room, schedule_day, schedule_time) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [code, name, sks || 3, semester || 4, dosen_id || null, dosen_name || null, class_room, schedule_day, schedule_time]
+        [code, name, sks || 3, semester || 4, dosen_id || null, dosen_name || null, class_room || null, schedule_day, schedule_time]
       );
       return result.insertId;
     } catch (_) {
@@ -198,16 +226,16 @@ const ClassModel = {
   },
 
   // Menghapus data kelas
-  delete: async (id) => {
+  delete: async (id: number | string): Promise<number> => {
     try {
-      const [result] = await db.query('DELETE FROM kelas WHERE id = ?', [id]);
+      const [result]: any = await db.query('DELETE FROM kelas WHERE id = ?', [id]);
       return result.affectedRows;
     } catch (_) {
       const initLen = fallbackClasses.length;
-      fallbackClasses = fallbackClasses.filter((k) => k.id != id);
+      fallbackClasses = fallbackClasses.filter((k) => k.id != Number(id));
       return initLen - fallbackClasses.length;
     }
-  }
+  },
 };
 
-module.exports = ClassModel;
+export default ClassModel;

@@ -1,7 +1,32 @@
-const db = require('../config/db');
+import db from '../config/db';
+
+// Interface untuk struktur data Tugas
+export interface TugasItem {
+  id: number;
+  class_id: number | string;
+  class_name?: string | null;
+  class_code?: string | null;
+  dosen_name?: string | null;
+  title: string;
+  description?: string | null;
+  deadline_text: string;
+  category: 'segera' | 'selesai' | 'terlambat' | string;
+  attachment_name?: string | null;
+  created_at: string | Date;
+}
+
+// Interface untuk data saat pembuatan (create) tugas baru
+export interface CreateTugasDTO {
+  class_id: number | string;
+  title: string;
+  description?: string | null;
+  deadline_text?: string;
+  category?: string;
+  attachment_name?: string | null;
+}
 
 // In-memory / file fallback data for Tugas when MySQL is offline
-let fallbackTugas = [
+let fallbackTugas: TugasItem[] = [
   {
     id: 1,
     class_id: 7,
@@ -95,11 +120,11 @@ let fallbackTugas = [
   },
 ];
 
-const tugasModel = {
+export const tugasModel = {
   // Mengambil semua data tugas dengan relasi nama kelas/mata kuliah
-  getAll: async () => {
+  getAll: async (): Promise<TugasItem[]> => {
     try {
-      const [rows] = await db.query(`
+      const [rows] = (await db.query(`
         SELECT 
           t.id,
           t.class_id,
@@ -115,7 +140,7 @@ const tugasModel = {
         FROM tugas t
         LEFT JOIN kelas k ON t.class_id = k.id
         ORDER BY t.id ASC
-      `);
+      `)) as [TugasItem[], any];
       return rows;
     } catch (_) {
       return fallbackTugas;
@@ -123,9 +148,9 @@ const tugasModel = {
   },
 
   // Mengambil tugas berdasarkan ID
-  getById: async (id) => {
+  getById: async (id: number | string): Promise<TugasItem | undefined> => {
     try {
-      const [rows] = await db.query(`
+      const [rows] = (await db.query(`
         SELECT 
           t.*,
           k.name AS class_name,
@@ -134,17 +159,17 @@ const tugasModel = {
         FROM tugas t
         LEFT JOIN kelas k ON t.class_id = k.id
         WHERE t.id = ?
-      `, [id]);
+      `, [id])) as [TugasItem[], any];
       return rows[0];
     } catch (_) {
-      return fallbackTugas.find((t) => t.id == id);
+      return fallbackTugas.find((t) => t.id == Number(id));
     }
   },
 
   // Mengambil tugas berdasarkan kategori (segera, selesai, terlambat)
-  getByCategory: async (category) => {
+  getByCategory: async (category: string): Promise<TugasItem[]> => {
     try {
-      const [rows] = await db.query(`
+      const [rows] = (await db.query(`
         SELECT 
           t.*,
           k.name AS class_name,
@@ -153,7 +178,7 @@ const tugasModel = {
         LEFT JOIN kelas k ON t.class_id = k.id
         WHERE t.category = ?
         ORDER BY t.id ASC
-      `, [category]);
+      `, [category])) as [TugasItem[], any];
       return rows;
     } catch (_) {
       return fallbackTugas.filter((t) => t.category === category);
@@ -161,13 +186,13 @@ const tugasModel = {
   },
 
   // Menambahkan data tugas baru
-  create: async (data) => {
+  create: async (data: CreateTugasDTO): Promise<number> => {
     const { class_id, title, description, deadline_text, category, attachment_name } = data;
     try {
-      const [result] = await db.query(
+      const [result]: any = await db.query(
         `INSERT INTO tugas (class_id, title, description, deadline_text, category, attachment_name) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [class_id, title, description, deadline_text || 'Hari ini, 23.59', category || 'segera', attachment_name || null]
+        [class_id, title, description || null, deadline_text || 'Hari ini, 23.59', category || 'segera', attachment_name || null]
       );
       return result.insertId;
     } catch (_) {
@@ -177,7 +202,7 @@ const tugasModel = {
         class_id,
         class_name: 'Mata Kuliah',
         title,
-        description,
+        description: description || null,
         deadline_text: deadline_text || 'Hari ini, 23.59',
         category: category || 'segera',
         attachment_name: attachment_name || null,
@@ -188,15 +213,15 @@ const tugasModel = {
   },
 
   // Mengubah status tugas (misal: selesai / diserahkan)
-  updateCategory: async (id, category) => {
+  updateCategory: async (id: number | string, category: string): Promise<number> => {
     try {
-      const [result] = await db.query(
+      const [result]: any = await db.query(
         'UPDATE tugas SET category = ? WHERE id = ?',
         [category, id]
       );
       return result.affectedRows;
     } catch (_) {
-      const item = fallbackTugas.find((t) => t.id == id);
+      const item = fallbackTugas.find((t) => t.id == Number(id));
       if (item) {
         item.category = category;
         return 1;
@@ -206,16 +231,16 @@ const tugasModel = {
   },
 
   // Menghapus data tugas
-  delete: async (id) => {
+  delete: async (id: number | string): Promise<number> => {
     try {
-      const [result] = await db.query('DELETE FROM tugas WHERE id = ?', [id]);
+      const [result]: any = await db.query('DELETE FROM tugas WHERE id = ?', [id]);
       return result.affectedRows;
     } catch (_) {
       const initLen = fallbackTugas.length;
-      fallbackTugas = fallbackTugas.filter((t) => t.id != id);
+      fallbackTugas = fallbackTugas.filter((t) => t.id != Number(id));
       return initLen - fallbackTugas.length;
     }
   }
 };
 
-module.exports = tugasModel;
+export default tugasModel;

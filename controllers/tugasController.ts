@@ -1,10 +1,11 @@
-const { prisma } = require('../data/database');
+import { Request, Response } from 'express';
+import { prisma } from '../data/database.js';
 
 // Mengambil semua data tugas
-exports.getAllTugas = async (req, res) => {
+export const getAllTugas = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { category } = req.query;
-    const where = category ? { category } : {};
+    const where = category ? { category: String(category) } : {};
 
     const tugasList = await prisma.tugas.findMany({
       where,
@@ -19,7 +20,7 @@ exports.getAllTugas = async (req, res) => {
       orderBy: { deadline: 'asc' },
     });
 
-    const formatted = tugasList.map((t) => ({
+    const formatted = tugasList.map((t: any) => ({
       id: t.id,
       class_id: t.kelasId,
       class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
@@ -33,18 +34,18 @@ exports.getAllTugas = async (req, res) => {
       created_at: t.createdAt,
     }));
 
-    res.status(200).json(formatted);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json(formatted);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Mengambil detail tugas berdasarkan ID
-exports.getTugasById = async (req, res) => {
+export const getTugasById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const t = await prisma.tugas.findUnique({
-      where: { id },
+      where: { id: String(id) },
       include: {
         kelas: {
           include: {
@@ -73,14 +74,14 @@ exports.getTugasById = async (req, res) => {
       created_at: t.createdAt,
     };
 
-    res.status(200).json(formatted);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json(formatted);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Menambah tugas baru
-exports.createTugas = async (req, res) => {
+export const createTugas = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { class_id, title, description, deadline, deadline_text, category, attachment_name } = req.body;
 
@@ -107,14 +108,14 @@ exports.createTugas = async (req, res) => {
       },
     });
 
-    res.status(201).json({ success: true, message: 'Tugas berhasil ditambahkan', id: newTugas.id });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(201).json({ success: true, message: 'Tugas berhasil ditambahkan', id: newTugas.id });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Mengubah kategori status tugas
-exports.updateTugasCategory = async (req, res) => {
+export const updateTugasCategory = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
     const { category } = req.body;
@@ -124,23 +125,31 @@ exports.updateTugasCategory = async (req, res) => {
     }
 
     await prisma.tugas.update({
-      where: { id },
+      where: { id: String(id) },
       data: { category },
     });
 
-    res.status(200).json({ success: true, message: 'Status tugas berhasil diperbarui' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json({ success: true, message: 'Status tugas berhasil diperbarui' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 };
 
 // Menghapus tugas
-exports.deleteTugas = async (req, res) => {
+export const deleteTugas = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    await prisma.tugas.delete({ where: { id } });
-    res.status(200).json({ success: true, message: `Tugas dengan ID ${id} berhasil dihapus` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    await prisma.tugas.delete({ where: { id: String(id) } });
+    return res.status(200).json({ success: true, message: `Tugas dengan ID ${id} berhasil dihapus` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
+};
+
+export default {
+  getAllTugas,
+  getTugasById,
+  createTugas,
+  updateTugasCategory,
+  deleteTugas,
 };

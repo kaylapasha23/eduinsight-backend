@@ -1,13 +1,12 @@
-const express = require('express');
-const router = express.Router();
-
-const {
+import { Router } from 'express';
+import {
   getNotesHandler,
   syncNotesHandler,
   createNoteHandler,
-} = require('../controllers/noteController');
+} from '../controllers/noteController.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 
-const { authMiddleware } = require('../middleware/authMiddleware');
+const router = Router();
 
 // Semua rute catatan dilindungi dengan JWT authMiddleware
 router.use(authMiddleware);
@@ -21,4 +20,4 @@ router.post('/', createNoteHandler);
 // POST /api/notes/sync — Sinkronisasi batch catatan offline-first (synced & updated_at)
 router.post('/sync', syncNotesHandler);
 
-module.exports = router;
+export default router;
