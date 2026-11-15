@@ -17,6 +17,10 @@ import noteRoutes from './routes/noteRoutes.js';
 import nilaiSemesterRoutes from './routes/nilaiSemesterRoutes.js';
 
 const app = express();
+
+// Request logging – harus dipasang sebelum semua route
+import requestLogger from './middleware/loggingMiddleware.js';
+app.use(requestLogger);
 const PORT = process.env.PORT || 3000;
 
 app.use(

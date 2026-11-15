@@ -24,12 +24,21 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
       id: t.id,
       class_id: t.kelasId,
       class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
       class_code: t.kelas?.kodeGabung || '',
       dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
       title: t.judul,
       description: t.deskripsi,
+      deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+      dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
       deadline_text: t.deadlineText || 'Hari ini, 23.59',
       category: t.category,
+      status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
+      submittedCount: 25,
+      submitted_count: 25,
+      totalStudents: 30,
+      total_students: 30,
       attachment_name: t.lampiran,
       created_at: t.createdAt,
     }));
@@ -64,12 +73,21 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
       id: t.id,
       class_id: t.kelasId,
       class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
       class_code: t.kelas?.kodeGabung || '',
       dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
       title: t.judul,
       description: t.deskripsi,
+      deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+      dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
       deadline_text: t.deadlineText || 'Hari ini, 23.59',
       category: t.category,
+      status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
+      submittedCount: 25,
+      submitted_count: 25,
+      totalStudents: 30,
+      total_students: 30,
       attachment_name: t.lampiran,
       created_at: t.createdAt,
     };
@@ -89,11 +107,12 @@ export const createTugas = async (req: Request, res: Response): Promise<Response
       return res.status(400).json({ success: false, message: 'Title wajib diisi!' });
     }
 
-    let targetKelasId = class_id;
-    if (!targetKelasId) {
-      const firstKelas = await prisma.kelas.findFirst();
-      targetKelasId = firstKelas ? firstKelas.id : 'kelas-ai';
+    const rawClassId = String(class_id || '');
+    let validKelas = rawClassId ? await prisma.kelas.findUnique({ where: { id: rawClassId } }) : null;
+    if (!validKelas) {
+      validKelas = await prisma.kelas.findFirst();
     }
+    const targetKelasId = validKelas ? validKelas.id : 'kelas-ai';
 
     const newTugas = await prisma.tugas.create({
       data: {

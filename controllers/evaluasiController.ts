@@ -11,17 +11,25 @@ export const getEvaluasi = async (req: Request, res: Response): Promise<Response
     const formatted = list.map((ev: any) => {
       let messages: any[] = [];
       try {
-        messages = JSON.parse(ev.messages);
+        messages = typeof ev.messages === 'string' ? JSON.parse(ev.messages) : (ev.messages || []);
       } catch (_) {
         messages = [{ text: ev.messages, isPositive: true }];
       }
 
       return {
         id: ev.id,
+        kelasId: ev.kelasId,
+        studentName: ev.studentName,
+        nilaiAkhir: ev.nilaiAkhir ?? 85.0,
+        trenKehadiran: ev.trenKehadiran || '90%',
+        indikatorRisiko: ev.indikatorRisiko || 'Rendah',
+        insightPerforma: ev.insightPerforma || 'Performa akademik baik.',
+        catatanDosen: ev.catatanDosen || ev.lecturerNote || '',
         dateText: ev.dateText,
         lecturerName: ev.lecturerName,
         messages,
         lecturerNote: ev.lecturerNote,
+        createdAt: ev.createdAt,
       };
     });
 

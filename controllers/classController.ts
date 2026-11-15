@@ -25,8 +25,10 @@ export const getAllClasses = async (req: Request, res: Response): Promise<Respon
       dosen_id: k.dosenId,
       dosen_name: k.dosen ? k.dosen.name : 'Dosen Pengampu',
       class_room: k.ruangan,
+      classRoom: k.ruangan,
       schedule_day: k.hari,
       schedule_time: `${k.jamMulai} - ${k.jamSelesai} WIB`,
+      schedule: `${k.hari} ${k.jamMulai}-${k.jamSelesai}`,
       created_at: k.createdAt,
     }));
 
@@ -40,8 +42,8 @@ export const getAllClasses = async (req: Request, res: Response): Promise<Respon
 export const getClassById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const k = await prisma.kelas.findUnique({
-      where: { id },
+    const k: any = await prisma.kelas.findUnique({
+      where: { id: String(id) },
       include: {
         mataKuliah: true,
         dosen: true,
@@ -61,8 +63,10 @@ export const getClassById = async (req: Request, res: Response): Promise<Respons
       dosen_id: k.dosenId,
       dosen_name: k.dosen ? k.dosen.name : 'Dosen Pengampu',
       class_room: k.ruangan,
+      classRoom: k.ruangan,
       schedule_day: k.hari,
       schedule_time: `${k.jamMulai} - ${k.jamSelesai} WIB`,
+      schedule: `${k.hari} ${k.jamMulai}-${k.jamSelesai}`,
       created_at: k.createdAt,
     };
 
@@ -75,13 +79,15 @@ export const getClassById = async (req: Request, res: Response): Promise<Respons
 // Menambah kelas baru
 export const createClass = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { code, name, sks, ruangan, schedule_day, schedule_time } = req.body;
+    const { code, name, sks, ruangan, classRoom, schedule, schedule_day, schedule_time } = req.body;
 
-    let matkul = await prisma.mataKuliah.findUnique({ where: { kode: code } });
+    const classCode = code || `MK-${Date.now().toString().slice(-4)}`;
+    let matkul = await prisma.mataKuliah.findUnique({ where: { kode: classCode } });
     if (!matkul) {
       matkul = await prisma.mataKuliah.create({
         data: {
-          kode: code,
+          id: `mk-${Date.now()}`,
+          kode: classCode,
           nama: name || 'Mata Kuliah Baru',
           sks: sks ? Number(sks) : 3,
         },
@@ -90,14 +96,35 @@ export const createClass = async (req: Request, res: Response): Promise<Response
 
     const dosen = await prisma.user.findFirst({ where: { role: 'dosen' } });
 
+    const roomVal = ruangan || classRoom || 'Ruang Kuliah';
+    let dayVal = schedule_day || 'Senin';
+    let startVal = '08.00';
+    let endVal = '10.00';
+
+    const rawSched = schedule || schedule_time || '';
+    if (rawSched) {
+      const parts = rawSched.trim().split(' ');
+      if (['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].includes(parts[0])) {
+        dayVal = parts[0];
+        const timePart = parts.slice(1).join(' ').replace('WIB', '').trim();
+        if (timePart.includes('-')) {
+          startVal = timePart.split('-')[0].trim();
+          endVal = timePart.split('-')[1]?.trim() || '10.00';
+        }
+      } else if (rawSched.includes('-')) {
+        startVal = rawSched.split('-')[0].trim();
+        endVal = rawSched.split('-')[1]?.trim() || '10.00';
+      }
+    }
+
     const newKelas = await prisma.kelas.create({
       data: {
         id: `kelas-${Date.now()}`,
-        kodeGabung: code,
-        ruangan: ruangan || 'Ruang Kuliah',
-        hari: schedule_day || 'Senin',
-        jamMulai: schedule_time ? schedule_time.split('-')[0].trim() : '08.00',
-        jamSelesai: schedule_time ? schedule_time.split('-')[1]?.trim() : '10.00',
+        kodeGabung: classCode,
+        ruangan: roomVal,
+        hari: dayVal,
+        jamMulai: startVal,
+        jamSelesai: endVal,
         mataKuliahId: matkul.id,
         dosenId: dosen ? dosen.id : 'user-dsn-001',
       },
@@ -113,7 +140,7 @@ export const createClass = async (req: Request, res: Response): Promise<Response
 export const deleteClass = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    await prisma.kelas.delete({ where: { id } });
+    await prisma.kelas.delete({ where: { id: String(id) } });
     return res.status(200).json({ success: true, message: `Kelas dengan ID ${id} berhasil dihapus` });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || err });

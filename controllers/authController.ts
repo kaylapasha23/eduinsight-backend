@@ -29,7 +29,10 @@ function generateToken(user: any): string {
 function sanitizeUser(user: any): any {
   if (!user) return null;
   const { password, ...safeUser } = user;
-  return safeUser;
+  return {
+    ...safeUser,
+    nama: safeUser.name,
+  };
 }
 
 export async function register(req: Request, res: Response): Promise<Response> {
