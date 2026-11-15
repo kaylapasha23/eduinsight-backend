@@ -15,6 +15,7 @@ import evaluasiRoutes from './routes/evaluasiRoutes.js';
 import passwordSettingRoutes from './routes/passwordSettingRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import nilaiSemesterRoutes from './routes/nilaiSemesterRoutes.js';
+import evaluatorRoutes from './routes/evaluatorRoutes.js';
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/evaluasi', evaluasiRoutes);
 app.use('/api/password-setting', passwordSettingRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/nilai-semester', nilaiSemesterRoutes);
+app.use('/api/evaluator', evaluatorRoutes);
 
 // Fallback 404
 app.use((req: Request, res: Response) => {

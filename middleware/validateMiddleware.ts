@@ -51,7 +51,7 @@ export function validateQuery(schema: ZodTypeAny) {
       });
     }
 
-    req.query = result.data;
+    req.query = result.data as any;
     return next();
   };
 }
@@ -72,7 +72,7 @@ export function validateParams(schema: ZodTypeAny) {
       });
     }
 
-    req.params = result.data;
+    req.params = result.data as any;
     return next();
   };
 }
