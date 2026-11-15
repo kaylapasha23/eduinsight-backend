@@ -1,5 +1,18 @@
 const { prisma } = require('../data/database');
 
+// Map jadwal per mata kuliah
+const jadwalMap = {
+  'Kecerdasan Buatan': '14.00-15.20 Lantai 7, Ruangan 701',
+  'Pemrograman Web': '08.00-10.00 Lantai 5, Ruang 502',
+  'Basis Data Terdistribusi': '12.00-14.00 Lantai 6, Ruang 606',
+  'Keamanan Siber & Jaringan': '10.00-12.00 Lab Keamanan, Lantai 4',
+  'Rekayasa Perangkat Lunak': '08.00-10.30 Lantai 3, Ruang 304',
+  'Statistika Komputasi': '13.30-15.00 Lantai 2, Ruang 201',
+  'Kewirausahaan': '08.00-09.40 Lantai 4, Ruang 401',
+  'UI/UX Design': '13.00-15.30 Lab Multimedia, Lantai 3',
+  'Internet of Things (IoT)': '15.00-17.30 Lab Hardware & IoT, Lantai 5',
+};
+
 // GET /api/kehadiran
 const getKehadiran = async (req, res) => {
   try {
@@ -14,7 +27,7 @@ const getKehadiran = async (req, res) => {
       if (!grouped[mkName]) {
         grouped[mkName] = {
           nama: mkName,
-          jadwal: '14.00-15.20 Ruang Kuliah',
+          jadwal: jadwalMap[mkName] || '14.00-15.20 Ruang Kuliah',
           riwayat: [],
         };
       }

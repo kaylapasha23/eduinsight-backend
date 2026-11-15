@@ -13,6 +13,7 @@ const tugasRoutes = require('./routes/tugasRoutes');
 const evaluasiRoutes = require('./routes/evaluasiRoutes');
 const passwordSettingsRoutes = require('./routes/passwordSettingRoutes');
 const noteRoutes = require('./routes/noteRoutes');
+const nilaiSemesterRoutes = require('./routes/nilaiSemesterRoutes');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/tugas', tugasRoutes);
 app.use('/api/evaluasi', evaluasiRoutes);
 app.use('/api/password-setting', passwordSettingsRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/nilai-semester', nilaiSemesterRoutes);
 
 // Fallback 404
 app.use((req, res) => {

@@ -3,7 +3,7 @@ const mysql = require('mysql2/promise');
 const seedScript = async () => {
   let connection;
   try {
-    console.log('🔄 Menghubungkan ke MySQL server lokal...');
+    console.log('Menghubungkan ke MySQL server lokal...');
 
     // 1. Hubungkan ke MySQL server tanpa menentukan database terlebih dahulu
     connection = await mysql.createConnection({
@@ -13,11 +13,11 @@ const seedScript = async () => {
       multipleStatements: true,
     });
 
-    console.log('📦 Membuat database db_eduinsight jika belum ada...');
+    console.log('Membuat database db_eduinsight jika belum ada...');
     await connection.query('CREATE DATABASE IF NOT EXISTS `db_eduinsight` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;');
     await connection.query('USE `db_eduinsight`;');
 
-    console.log('🔄 Menyiapkan tabel skema...');
+    console.log('Menyiapkan tabel skema...');
 
     // 2. Matikan Foreign Keys sementara
     await connection.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -91,7 +91,7 @@ const seedScript = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    console.log('✅ Berhasil membuat tabel: users, kelas, tugas, pengumpulan_tugas!');
+    console.log('Berhasil membuat tabel: users, kelas, tugas, pengumpulan_tugas!');
 
     // 7. Masukkan Data Users
     await connection.query(`
@@ -141,11 +141,11 @@ const seedScript = async () => {
       (7, 1, 'Laporan_Praktikum_1_IoT_Brooke.pdf', 'Diserahkan');
     `);
 
-    console.log('🎉 Database db_eduinsight dan seluruh data Users, Kelas, dan Tugas BERHASIL dibuat!');
+    console.log('Database db_eduinsight dan seluruh data Users, Kelas, dan Tugas BERHASIL dibuat!');
     if (connection) await connection.end();
     process.exit(0);
   } catch (err) {
-    console.error('❌ Gagal menjalankan seed database:', err.message);
+    console.error('Gagal menjalankan seed database:', err.message);
     if (connection) await connection.end();
     process.exit(1);
   }
