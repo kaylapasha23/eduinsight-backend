@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { getUsers, findUserById, createUser, updateUser, deleteUser } from '../data/database.js';
+import { prisma, getUsers, findUserById, createUser, updateUser, deleteUser } from '../data/database.js';
 
 // GET All Users
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
@@ -62,6 +62,47 @@ export const createNewUser = async (req: Request, res: Response): Promise<Respon
   }
 };
 
+// BULK CREATE USERS – accepts an array of user objects (same shape as single create)
+export const bulkCreateUsers = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const users: any[] = req.body; // expect [{name,email,password,role,...}, ...]
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({ error: 'Request body harus berupa array user non‑kosong' });
+    }
+    // Prepare data: hash passwords, enforce required fields
+    const prepared = users.map((u) => {
+      const { name, email, password, role, nim, nip, fakultas, prodi, angkatan } = u;
+      if (!email || !password || !name || !role) {
+        throw new Error('Setiap user harus memiliki name, email, password, dan role');
+      }
+      return {
+        id: u.id, // optional – prisma will generate if omitted
+        name,
+        email,
+        password: bcrypt.hashSync(password, 10),
+        role,
+        nim,
+        nip,
+        fakultas,
+        prodi,
+        angkatan,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    });
+    // Use Prisma createMany for efficiency, skip duplicate email/NIP
+    const result = await prisma.user.createMany({
+      data: prepared,
+      skipDuplicates: true,
+    });
+    return res.status(201).json({
+      message: `Bulk insert selesai – ${result.count} user ditambahkan (duplikat dilewati)`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message || err });
+  }
+};
+
 // UPDATE User
 export const updateExistingUser = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -101,6 +142,7 @@ export default {
   getAllUsers,
   getUserById,
   createUser: createNewUser,
+  bulkCreateUsers,
   updateUser: updateExistingUser,
   deleteUser: removeUser,
 };
