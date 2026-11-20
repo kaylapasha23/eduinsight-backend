@@ -20,28 +20,47 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
       orderBy: { deadline: 'asc' },
     });
 
-    const formatted = tugasList.map((t: any) => ({
-      id: t.id,
-      class_id: t.kelasId,
-      class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-      subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-      nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-      class_code: t.kelas?.kodeGabung || '',
-      dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
-      title: t.judul,
-      description: t.deskripsi,
-      deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
-      dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
-      deadline_text: t.deadlineText || 'Hari ini, 23.59',
-      category: t.category,
-      status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
-      submittedCount: 25,
-      submitted_count: 25,
-      totalStudents: 30,
-      total_students: 30,
-      attachment_name: t.lampiran,
-      created_at: t.createdAt,
-    }));
+    const penilaianList = await prisma.penilaian.findMany();
+
+    const formatted = tugasList.map((t: any) => {
+      // Periksa apakah tugas ini sudah dinilai oleh dosen untuk mahasiswa
+      const matchingPenilaian = penilaianList.find((p: any) => 
+        (p.kelasId === t.kelasId || !p.kelasId) &&
+        (p.taskName?.toLowerCase().trim() === t.judul?.toLowerCase().trim() ||
+         t.judul?.toLowerCase().trim().includes(p.taskName?.toLowerCase().trim()) ||
+         p.taskName?.toLowerCase().trim().includes(t.judul?.toLowerCase().trim()))
+      );
+
+      const isGraded = Boolean(matchingPenilaian);
+      const score = matchingPenilaian ? matchingPenilaian.score : null;
+
+      return {
+        id: t.id,
+        class_id: t.kelasId,
+        class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+        subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+        nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+        class_code: t.kelas?.kodeGabung || '',
+        dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
+        title: t.judul,
+        description: t.deskripsi,
+        deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+        dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+        deadline_text: t.deadlineText || 'Hari ini, 23.59',
+        category: t.category,
+        status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
+        is_graded: isGraded,
+        isGraded: isGraded,
+        score: score,
+        nilai: score,
+        submittedCount: 25,
+        submitted_count: 25,
+        totalStudents: 30,
+        total_students: 30,
+        attachment_name: t.lampiran,
+        created_at: t.createdAt,
+      };
+    });
 
     return res.status(200).json(formatted);
   } catch (err: any) {
@@ -69,6 +88,17 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
       return res.status(404).json({ success: false, message: 'Tugas tidak ditemukan' });
     }
 
+    const matchingPenilaian = await prisma.penilaian.findFirst({
+      where: {
+        taskName: {
+          contains: t.judul,
+        },
+      },
+    });
+
+    const isGraded = Boolean(matchingPenilaian);
+    const score = matchingPenilaian ? matchingPenilaian.score : null;
+
     const formatted = {
       id: t.id,
       class_id: t.kelasId,
@@ -84,6 +114,10 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
       deadline_text: t.deadlineText || 'Hari ini, 23.59',
       category: t.category,
       status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
+      is_graded: isGraded,
+      isGraded: isGraded,
+      score: score,
+      nilai: score,
       submittedCount: 25,
       submitted_count: 25,
       totalStudents: 30,
@@ -133,22 +167,30 @@ export const createTugas = async (req: Request, res: Response): Promise<Response
   }
 };
 
-// Mengubah kategori status tugas
+// Mengubah tugas (kategori, judul, deskripsi, deadline, lampiran)
 export const updateTugasCategory = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const { category } = req.body;
+    const { category, title, judul, description, deskripsi, deadline, deadline_text, attachment_name } = req.body;
 
-    if (!category) {
-      return res.status(400).json({ success: false, message: 'Field category wajib diisi!' });
+    const dataToUpdate: any = {};
+    if (category) dataToUpdate.category = category;
+    if (title || judul) dataToUpdate.judul = title || judul;
+    if (description !== undefined || deskripsi !== undefined) dataToUpdate.deskripsi = description || deskripsi || '';
+    if (deadline) dataToUpdate.deadline = new Date(deadline);
+    if (deadline_text) dataToUpdate.deadlineText = deadline_text;
+    if (attachment_name !== undefined) dataToUpdate.lampiran = attachment_name;
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data untuk diperbarui!' });
     }
 
     await prisma.tugas.update({
       where: { id: String(id) },
-      data: { category },
+      data: dataToUpdate,
     });
 
-    return res.status(200).json({ success: true, message: 'Status tugas berhasil diperbarui' });
+    return res.status(200).json({ success: true, message: 'Data tugas berhasil diperbarui' });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || err });
   }

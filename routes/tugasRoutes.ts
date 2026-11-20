@@ -31,6 +31,20 @@ router.patch(
   validateBody(UpdateTugasCategorySchema),
   tugasController.updateTugasCategory,
 );
+router.put(
+  '/:id',
+  authMiddleware,
+  validateParams(z.object({ id: z.string() })),
+  validateBody(UpdateTugasCategorySchema),
+  tugasController.updateTugasCategory,
+);
+router.patch(
+  '/:id',
+  authMiddleware,
+  validateParams(z.object({ id: z.string() })),
+  validateBody(UpdateTugasCategorySchema),
+  tugasController.updateTugasCategory,
+);
 router.delete(
   '/:id',
   authMiddleware,

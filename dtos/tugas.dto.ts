@@ -19,7 +19,14 @@ export const CreateTugasSchema = z.object({
 export type CreateTugasDTO = z.infer<typeof CreateTugasSchema>;
 
 export const UpdateTugasCategorySchema = z.object({
-  category: z.enum(['segera', 'selesai', 'terlambat']).optional().default('segera'),
+  category: z.enum(['segera', 'selesai', 'terlambat']).optional(),
+  title: z.string().optional(),
+  judul: z.string().optional(),
+  description: z.string().optional(),
+  deskripsi: z.string().optional(),
+  deadline: z.string().optional(),
+  deadline_text: z.string().optional(),
+  attachment_name: z.string().nullable().optional(),
 });
 
 export type UpdateTugasCategoryDTO = z.infer<typeof UpdateTugasCategorySchema>;
