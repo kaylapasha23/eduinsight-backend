@@ -18,10 +18,10 @@ export const CreateKehadiranSchema = z.object({
 export type CreateKehadiranDTO = z.infer<typeof CreateKehadiranSchema>;
 
 export const KehadiranQuerySchema = z.object({
-  class_id: z.string().optional(),
-  kelasId: z.string().optional(),
-  nomor: z.string().optional(),
-  meeting: z.string().optional(),
+  class_id: z.union([z.string(), z.number()]).optional(),
+  kelasId: z.union([z.string(), z.number()]).optional(),
+  nomor: z.union([z.string(), z.number()]).optional(),
+  meeting: z.union([z.string(), z.number()]).optional(),
   view: z.string().optional(),
 });
 
