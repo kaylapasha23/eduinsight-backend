@@ -80,6 +80,7 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
   const studentList = list.map((item, idx) => {
     const sName = item.studentName || 'Mahasiswa';
     const matchedNim = userNimMap.get(sName.toLowerCase().trim()) || `22010100${(idx % 10) + 1}`;
+    const itemTimestamp = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     return {
       id: item.id,
       class_id: item.kelasId,
@@ -94,6 +95,9 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
       topik: item.topik,
       date: item.tanggal,
       tanggal: item.tanggal,
+      createdAt: item.createdAt,
+      timestamp: itemTimestamp,
+      waktu: item.createdAt ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt)) : item.tanggal,
       finalScore: 85.0 + ((idx * 3) % 12),
       gradeHistory: 'Tugas 88 · Kuis 80 · UTS 84 · UAS 88',
       notes: item.status === 'Hadir' ? 'Aktif dan tepat waktu di kelas' : 'Perlu konfirmasi surat izin/sakit',
@@ -132,6 +136,34 @@ export const createKehadiranService = async (payload: any) => {
   }
   const targetKelasId = validKelas ? validKelas.id : 'kelas-ai';
   const cleanStatus = status === 'Alpha' ? 'Alpa' : (status || 'Hadir');
+  const meetingNumber = nomor ? Number(nomor) : 1;
+
+  // Cek apakah data kehadiran sudah ada untuk kelasId, nomor pertemuan, dan studentName ini (mencegah duplikasi data saat simpan berulang kali)
+  const existingKhd = await prisma.kehadiran.findFirst({
+    where: {
+      kelasId: targetKelasId,
+      nomor: meetingNumber,
+      studentName: sName,
+    },
+  });
+
+  if (existingKhd) {
+    const updated = await prisma.kehadiran.update({
+      where: { id: existingKhd.id },
+      data: {
+        status: cleanStatus,
+        tanggal: tgl,
+        namaMatkul: matkul_name || existingKhd.namaMatkul,
+        topik: topik || existingKhd.topik,
+        createdAt: new Date(),
+      },
+    });
+    return {
+      ...updated,
+      createdAt: updated.createdAt,
+      timestamp: updated.createdAt ? updated.createdAt.toISOString() : new Date().toISOString(),
+    };
+  }
 
   const newKhd = await prisma.kehadiran.create({
     data: {
@@ -139,14 +171,19 @@ export const createKehadiranService = async (payload: any) => {
       kelasId: targetKelasId,
       namaMatkul: matkul_name || (validKelas ? 'Mata Kuliah' : 'Kecerdasan Buatan'),
       studentName: sName,
-      nomor: nomor ? Number(nomor) : 1,
+      nomor: meetingNumber,
       topik: topik || 'Materi Perkuliahan',
       tanggal: tgl,
       status: cleanStatus,
+      createdAt: new Date(),
     },
   });
 
-  return newKhd;
+  return {
+    ...newKhd,
+    createdAt: newKhd.createdAt,
+    timestamp: newKhd.createdAt ? newKhd.createdAt.toISOString() : new Date().toISOString(),
+  };
 };
 
 export const deleteKehadiranService = async (id: string) => {

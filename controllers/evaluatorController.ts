@@ -5,12 +5,12 @@ import { Logger } from '../utils/logger.js';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
 /**
- * POST /api/evaluator/analyze
+- POST /api/evaluator/analyze
  *
- * Body (sudah divalidasi Zod):
- *   student_id   – id user atau NIM mahasiswa
- *   class_id     – id kelas
- *   lecturer_note – catatan dosen (opsional)
+- Body (sudah divalidasi Zod):
+-   student_id   – id user atau NIM mahasiswa
+-   class_id     – id kelas
+-   lecturer_note – catatan dosen (opsional)
  */
 export const analyzeStudent = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   const { student_id, class_id, lecturer_note } = req.body;
@@ -27,7 +27,8 @@ export const analyzeStudent = async (req: AuthenticatedRequest, res: Response): 
     );
 
     // ── Susun data untuk disimpan ke tabel evaluasi ───────────────────
-    const evalId = `eval-${user.id}-${class_id}`;
+    const validKelasId = kelas?.id || class_id;
+    const evalId = `eval-${user.id}-${validKelasId}`;
 
     const messages = [
       { text: aiResult.ringkasan_analisis, isPositive: aiResult.status_risiko === 'Aman' },
@@ -35,7 +36,7 @@ export const analyzeStudent = async (req: AuthenticatedRequest, res: Response): 
     ];
 
     const dataToSave = {
-      kelasId: class_id,
+      kelasId: validKelasId,
       studentName: user.name,
       nilaiAkhir: stats.rataRataNilai,
       trenKehadiran: `${stats.persentaseKehadiran}%`,
@@ -72,7 +73,7 @@ export const analyzeStudent = async (req: AuthenticatedRequest, res: Response): 
         id: saved.id,
         studentName: user.name,
         nim: user.nim ?? null,
-        kelasId: class_id,
+        kelasId: validKelasId,
         status_risiko: aiResult.status_risiko,
         ringkasan_analisis: aiResult.ringkasan_analisis,
         rekomendasi: aiResult.rekomendasi,
