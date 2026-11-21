@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import tugasController from '../controllers/tugasController.js';
+import pengumpulanTugasController from '../controllers/pengumpulanTugasController.js';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
 import { validateBody, validateParams } from '../middleware/validateMiddleware.js';
 import { CreateTugasSchema, UpdateTugasCategorySchema } from '../dtos/tugas.dto.js';
@@ -11,6 +12,11 @@ router.get(
   '/',
   optionalAuthMiddleware,
   tugasController.getAllTugas,
+);
+router.get(
+  '/:id/pengumpulan',
+  optionalAuthMiddleware,
+  pengumpulanTugasController.getPengumpulanByTugasId,
 );
 router.get(
   '/:id',

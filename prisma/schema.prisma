@@ -100,12 +100,16 @@ model Tugas {
 
 // 5. Entity PengumpulanTugas (Submissions Mahasiswa)
 model PengumpulanTugas {
-  id          String   @id @default(uuid())
-  taskId      String
-  studentId   String
-  fileName    String?
-  status      String   @default("Diserahkan")
-  submittedAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  taskId          String
+  studentId       String
+  fileName        String?
+  fileUrl         String?
+  linkRepo        String?
+  nilai           Int?
+  statusPenilaian String   @default("Belum Dinilai") // Belum Dinilai, Sudah Dinilai
+  status          String   @default("Diserahkan")    // Diserahkan, Terlambat
+  submittedAt     DateTime @default(now())
 
   tugas Tugas @relation(fields: [taskId], references: [id], onDelete: Cascade)
   siswa User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
