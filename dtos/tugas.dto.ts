@@ -47,6 +47,8 @@ export const CreateTugasSchema = z.object({
   deadline_text: z.string().optional(),
   category: z.enum(['segera', 'selesai', 'terlambat']).optional().default('segera'),
   attachment_name: z.string().nullable().optional(),
+  lampiranUrl: z.string().nullable().optional(),
+  lampiranNama: z.string().nullable().optional(),
 }).superRefine((data, ctx) => {
   const judul = data.title || data.judul || '';
   const result = validateJudulTugas(judul);

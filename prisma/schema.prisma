@@ -87,6 +87,8 @@ model Tugas {
   deadlineText String?  @default("Hari ini, 23.59")
   category     String   @default("segera") // segera, selesai, terlambat
   lampiran     String?
+  lampiranUrl  String?  @db.Text
+  lampiranNama String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

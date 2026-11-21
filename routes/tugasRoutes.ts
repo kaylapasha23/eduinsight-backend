@@ -4,6 +4,7 @@ import pengumpulanTugasController from '../controllers/pengumpulanTugasControlle
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
 import { validateBody, validateParams } from '../middleware/validateMiddleware.js';
 import { CreateTugasSchema, UpdateTugasCategorySchema } from '../dtos/tugas.dto.js';
+import { uploadTugas } from '../middleware/uploadMiddleware.js';
 import { z } from 'zod';
 
 const router = Router();
@@ -27,6 +28,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
+  uploadTugas.single('lampiran'),
   validateBody(CreateTugasSchema),
   tugasController.createTugas,
 );

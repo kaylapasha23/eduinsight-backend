@@ -66,7 +66,11 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
         submitted_count: realSubmittedCount,
         totalStudents: totalMahasiswa || 30,
         total_students: totalMahasiswa || 30,
-        attachment_name: t.lampiran,
+        attachment_name: t.lampiranNama || t.lampiran,
+        lampiran_nama: t.lampiranNama || t.lampiran,
+        lampiran_url: t.lampiranUrl,
+        lampiranNama: t.lampiranNama || t.lampiran,
+        lampiranUrl: t.lampiranUrl,
         created_at: t.createdAt,
       };
     });
@@ -139,7 +143,11 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
         submitted_count: realSubmittedCount,
         totalStudents: totalMahasiswa || 30,
         total_students: totalMahasiswa || 30,
-        attachment_name: t.lampiran,
+        attachment_name: t.lampiranNama || t.lampiran,
+        lampiran_nama: t.lampiranNama || t.lampiran,
+        lampiran_url: t.lampiranUrl,
+        lampiranNama: t.lampiranNama || t.lampiran,
+        lampiranUrl: t.lampiranUrl,
         created_at: t.createdAt,
       };
 
@@ -152,7 +160,7 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
   // Menambah tugas baru
   export const createTugas = async (req: Request, res: Response): Promise<Response> => {
     try {
-      const { class_id, title, judul, description, deadline, deadline_text, category, attachment_name } = req.body;
+      const { class_id, kelasId, title, judul, description, deskripsi, deadline, deadline_text, category, attachment_name } = req.body;
       const taskTitle = (title || judul || '').trim();
 
       const validation = validateJudulTugas(taskTitle);
@@ -163,27 +171,49 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
         });
       }
 
-      const rawClassId = String(class_id || '');
+      const rawClassId = String(class_id || kelasId || '');
       let validKelas = rawClassId ? await prisma.kelas.findUnique({ where: { id: rawClassId } }) : null;
       if (!validKelas) {
         validKelas = await prisma.kelas.findFirst();
       }
       const targetKelasId = validKelas ? validKelas.id : 'kelas-ai';
 
+      // Handle file lampiran dari Multer
+      const file = req.file;
+      let finalLampiranNama = attachment_name || null;
+      let finalLampiranUrl: string | null = null;
+
+      if (file) {
+        finalLampiranNama = file.originalname;
+        finalLampiranUrl = `/uploads/tugas/${file.filename}`;
+      } else if (req.body.lampiranUrl || req.body.lampiranNama) {
+        finalLampiranUrl = req.body.lampiranUrl || null;
+        finalLampiranNama = req.body.lampiranNama || finalLampiranNama;
+      }
+
+      const taskDeskripsi = (description || deskripsi || '').trim();
+
       const newTugas = await prisma.tugas.create({
         data: {
           id: `tugas-${Date.now()}`,
           kelasId: targetKelasId,
           judul: taskTitle,
-          deskripsi: description || '',
+          deskripsi: taskDeskripsi,
           deadline: deadline ? new Date(deadline) : new Date(Date.now() + 24 * 60 * 60 * 1000),
           deadlineText: deadline_text || 'Hari ini, 23.59',
           category: category || 'segera',
-          lampiran: attachment_name || null,
+          lampiran: finalLampiranNama,
+          lampiranNama: finalLampiranNama,
+          lampiranUrl: finalLampiranUrl,
         },
       });
 
-      return res.status(201).json({ success: true, message: 'Tugas berhasil ditambahkan', id: newTugas.id });
+      return res.status(201).json({
+        success: true,
+        message: 'Tugas berhasil ditambahkan',
+        id: newTugas.id,
+        data: newTugas,
+      });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err?.message || err });
     }

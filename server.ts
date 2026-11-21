@@ -3,6 +3,8 @@ dotenv.config();
 
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 import { initDatabase } from './data/database.js';
 
 import authRoutes from './routes/authRoutes.js';
@@ -45,6 +47,13 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Expose folder /uploads sebagai static folder
+const uploadsPath = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
