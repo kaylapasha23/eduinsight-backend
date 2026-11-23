@@ -65,11 +65,10 @@ export const getPengumpulanByTugasId = async (req: Request, res: Response): Prom
     // Jika tabel pengumpulan_tugas untuk tugas ini masih kosong, buat data awal otomatis
     if (submissions.length === 0 && allStudents.length > 0) {
       const sampleNames = [
-        { id: allStudents[0]?.id || 'user-mhs-brooke', name: allStudents[0]?.name || 'Brooke Everly', nim: allStudents[0]?.nim || '220101001', repo: 'https://github.com/brooke-everly/tugas-pemrograman', pdf: 'Laporan_Tugas_Brooke.pdf', nilai: 95, statusP: 'Sudah Dinilai', statusW: 'Tepat Waktu' },
-        { id: allStudents[1]?.id || 'user-mhs-sheren', name: allStudents[1]?.name || 'Sheren Annabelle', nim: allStudents[1]?.nim || '220101002', repo: 'https://github.com/sheren-ann/tugas-ai-expert', pdf: 'Tugas_Sheren_Annabelle.pdf', nilai: null, statusP: 'Belum Dinilai', statusW: 'Tepat Waktu' },
-        { id: allStudents[2]?.id || 'user-mhs-chris', name: allStudents[2]?.name || 'Chris Redfield', nim: allStudents[2]?.nim || '220101003', repo: 'https://github.com/chris-red/algorithm-study', pdf: 'Dokumentasi_Chris_R.pdf', nilai: null, statusP: 'Belum Dinilai', statusW: 'Terlambat' },
-        { id: allStudents[3]?.id || 'user-mhs-001', name: allStudents[3]?.name || 'Nama Mahasiswa', nim: allStudents[3]?.nim || '220101004', repo: 'https://github.com/student-001/final-lab', pdf: 'Modul_Tugas_Mahasiswa1.pdf', nilai: 88, statusP: 'Sudah Dinilai', statusW: 'Tepat Waktu' },
-        { id: allStudents[4]?.id || 'user-mhs-002', name: allStudents[4]?.name || 'Mahasiswa FILKOM', nim: allStudents[4]?.nim || '220101005', repo: 'https://github.com/filkom-mhs/app-submission', pdf: 'Hasil_Praktikum_Filkom.pdf', nilai: null, statusP: 'Belum Dinilai', statusW: 'Tepat Waktu' },
+        { id: 'user-mhs-brooke', name: 'Brooke Everly', nim: '254076512225017', repo: 'https://github.com/brooke-everly/tugas-pemrograman', pdf: 'Laporan_Tugas_Brooke.pdf', nilai: 95, statusP: 'Sudah Dinilai', statusW: 'Tepat Waktu' },
+        { id: 'user-mhs-sheren', name: 'Sheren Annabelle', nim: '220101001', repo: 'https://github.com/sheren-ann/tugas-ai-expert', pdf: 'Tugas_Sheren_Annabelle.pdf', nilai: null, statusP: 'Belum Dinilai', statusW: 'Tepat Waktu' },
+        { id: 'user-mhs-chris', name: 'Chris Redfield', nim: '254076512225018', repo: 'https://github.com/chris-red/algorithm-study', pdf: 'Dokumentasi_Chris_R.pdf', nilai: 85, statusP: 'Sudah Dinilai', statusW: 'Terlambat' },
+        { id: 'user-mhs-nareswari', name: 'Nareswari Ayu', nim: '220101004', repo: 'https://github.com/nareswari-ayu/eduinsight-tasks', pdf: 'Tugas_Nareswari_Ayu.pdf', nilai: 90, statusP: 'Sudah Dinilai', statusW: 'Tepat Waktu' },
       ];
 
       for (const s of sampleNames) {

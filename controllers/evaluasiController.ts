@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../data/database.js';
+import { createAndSendNotification } from '../services/fcmService.js';
 
 // Ambil data evaluasi mahasiswa (AI Evaluation Card)
 export const getEvaluasi = async (req: Request, res: Response): Promise<Response> => {
@@ -57,6 +58,44 @@ export const saveEvaluasi = async (req: Request, res: Response): Promise<Respons
         nilaiAkhir: req.body.nilaiAkhir ? Number(req.body.nilaiAkhir) : 85.0,
       } as any,
     });
+
+    // Pemicu notifikasi evaluasi ke mahasiswa spesifik (dengan proteksi rate-limit agar tidak kedouble)
+    try {
+      const sName = req.body.studentName || 'Mahasiswa';
+      const targetUser = await prisma.user.findFirst({
+        where: {
+          role: 'mahasiswa',
+          name: { equals: sName },
+        },
+        select: { id: true },
+      });
+
+      const recentNotif = await (prisma as any).notification.findFirst({
+        where: {
+          type: 'evaluasi',
+          userId: targetUser ? targetUser.id : null,
+          createdAt: { gte: new Date(Date.now() - 30_000) },
+        },
+      });
+
+      if (!recentNotif) {
+        await createAndSendNotification({
+          userId: targetUser ? targetUser.id : null,
+          type: 'evaluasi',
+          title: `Feedback Evaluasi Akademik Baru`,
+          body: lecturerNote
+            ? `Dosen memberikan catatan: "${lecturerNote}"`
+            : `Hasil evaluasi performa akademik terbaru telah tersedia dari dosen.`,
+          targetId: newEval.id,
+          targetType: 'evaluasi',
+          payload: {
+            evalId: newEval.id,
+            lecturerName: lecturerName || 'Dosen Pembimbing',
+            studentName: sName,
+          },
+        });
+      }
+    } catch (_) {}
 
     return res.status(200).json({ success: true, message: 'Data evaluasi berhasil disimpan', data: newEval });
   } catch (err: any) {

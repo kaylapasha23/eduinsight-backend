@@ -3,6 +3,7 @@ import { prisma } from '../data/database.js';
 import { runEvaluatorPipeline } from '../services/evaluatorService.js';
 import { Logger } from '../utils/logger.js';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import { createAndSendNotification } from '../services/fcmService.js';
 
 /**
 - POST /api/evaluator/analyze
@@ -64,6 +65,35 @@ export const analyzeStudent = async (req: AuthenticatedRequest, res: Response): 
     Logger.success(`[Evaluator] Evaluasi berhasil disimpan: ${evalId}`, {
       status: aiResult.status_risiko,
     });
+
+    // Pemicu notifikasi evaluasi AI ke mahasiswa (dengan rate-limit 60 detik)
+    try {
+      // Cek apakah sudah ada notifikasi evaluasi untuk user ini dalam 60 detik terakhir
+      const recentNotif = await (prisma as any).notification.findFirst({
+        where: {
+          type: 'evaluasi',
+          userId: user.id,
+          createdAt: { gte: new Date(Date.now() - 60_000) },
+        },
+      });
+      if (!recentNotif) {
+        await createAndSendNotification({
+          userId: user.id,
+          type: 'evaluasi',
+          title: `Evaluasi AI Akademik Diperbarui`,
+          body: lecturer_note 
+            ? `Dosen memberikan catatan: "${lecturer_note}"`
+            : `Hasil evaluasi performa akademik terbaru: ${aiResult.status_risiko} (Nilai: ${stats.rataRataNilai})`,
+          targetId: saved.id,
+          targetType: 'evaluasi',
+          payload: {
+            evalId: saved.id,
+            studentName: user.name,
+            kelasId: validKelasId,
+          },
+        });
+      }
+    } catch (_) {}
 
     // ── Kirim response ke frontend ────────────────────────────────────
     return res.status(200).json({

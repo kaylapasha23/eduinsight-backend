@@ -13,16 +13,126 @@ export const jadwalMap: Record<string, string> = {
   'Internet of Things (IoT)': '15.00-17.30 Lab Hardware & IoT, Lantai 5',
 };
 
+const defaultTopikByCourse: Record<string, string[]> = {
+  'Kecerdasan Buatan': [
+    'Pengenalan AI & Sejarah',
+    'Agen Cerdas & Lingkungan',
+    'Pencarian Buta (BFS/DFS)',
+    'Pencarian Heuristik & A*',
+    'Logika Proposisi & Inferensi',
+    'Machine Learning Dasar',
+    'Evaluasi & Review Pembelajaran AI',
+  ],
+  'Pemrograman Web': [
+    'Dasar HTML, CSS & Semantik',
+    'JavaScript Modern ES6+ & DOM',
+    'React: Komponen & State',
+    'React: Hooks & Routing',
+    'Integrasi REST API & Axios',
+    'State Management & Redux/Zustand',
+    'Deployment & Evaluasi Web App',
+  ],
+  'Basis Data Terdistribusi': [
+    'Pengantar Basis Data Terdistribusi',
+    'Model Data & Skema Terdistribusi',
+    'Fragmentasi & Replikasi Data',
+    'Query Terdistribusi & Optimasi',
+    'Transaksi Terdistribusi & Konkurensi',
+    'Replikasi & Sharding Lanjutan',
+    'Review Arsitektur & Evaluasi Sistem',
+  ],
+  'Keamanan Siber & Jaringan': [
+    'Pengantar Keamanan Siber',
+    'Dasar Kriptografi & Hash',
+    'Kriptografi Asimetris & Sertifikat Digital',
+    'Keamanan Protokol & Firewall',
+    'Analisis Malware & Deteksi Serangan',
+    'Penetration Testing & Vulnerability',
+    'Evaluasi Postur Keamanan & Audit',
+  ],
+  'Rekayasa Perangkat Lunak': [
+    'Pengantar RPL & Software Process',
+    'Analisis Kebutuhan & SRS',
+    'UML Design & Arsitektur Perangkat Lunak',
+    'Desain Arsitektur & Clean Architecture',
+    'Unit Testing, TDD & CI/CD',
+    'Agile Scrum & Sprint Execution',
+    'Review Proyek & Evaluasi Kualitas',
+  ],
+  'Pemrograman Framework': [
+    'Pengenalan Framework & Arsitektur MVC',
+    'Routing, Controller & Request Lifecycle',
+    'Database ORM / Prisma & Migrasi',
+    'Autentikasi, JWT & Middleware',
+    'RESTful API Development & Validasi',
+    'Testing, Error Handling & Logging',
+    'Deployment Production & Review Akhir',
+  ],
+  'Statistika Komputasi': [
+    'Statistika Deskriptif & Visualisasi Data',
+    'Distribusi Probabilitas & Sampling',
+    'Uji Hipotesis & Signifikansi',
+    'Regresi Linier & Korelasi',
+    'ANOVA & Uji Multivariat',
+    'Analisis Deret Waktu & Clustering',
+    'Evaluasi Model Statistik & Ujian',
+  ],
+  'Kewirausahaan': [
+    'Pola Pikir & Mindset Kewirausahaan',
+    'Identifikasi Masalah & Peluang Pasar',
+    'Business Model Canvas (BMC) & Value Prop',
+    'Riset Pasar & Validasi Produk (MVP)',
+    'Strategi Pemasaran & Go-To-Market',
+    'Perencanaan Finansial & Unit Economics',
+    'Pitch Deck & Evaluasi Usaha',
+  ],
+  'UI/UX Design': [
+    'Pengantar Desain Produk & Design Thinking',
+    'User Research, Persona & User Journey',
+    'Information Architecture & Wireframing',
+    'Desain Sistem & Komponen Figma',
+    'High-Fidelity Prototyping & Interaksi',
+    'Usability Testing & Feedback Loop',
+    'Design Hand-off & Portofolio Review',
+  ],
+  'Internet of Things (IoT)': [
+    'Pengenalan IoT & Ekosistem Perangkat',
+    'Mikrokontroler ESP32 & Pemrograman C++',
+    'Sensor, Aktuator & Antarmuka I/O',
+    'Protokol Komunikasi IoT (MQTT & HTTP)',
+    'Konektivitas Cloud & Visualisasi Data',
+    'Edge Computing & Automasi Cerdas',
+    'Demo Proyek IoT & Evaluasi Sistem',
+  ],
+};
+
+const defaultDates: string[] = [
+  '29 September 2026',
+  '6 Oktober 2026',
+  '13 Oktober 2026',
+  '20 Oktober 2026',
+  '27 Oktober 2026',
+  '3 November 2026',
+  '10 November 2026',
+];
+
 export interface KehadiranFilter {
   class_id?: string | number;
   kelasId?: string | number;
   nomor?: string | number;
   meeting?: string | number;
   view?: string;
+  page?: string | number;
+  limit?: string | number;
+  studentName?: string;
 }
 
 export const getKehadiranService = async (filter: KehadiranFilter) => {
-  const { class_id, kelasId, meeting, nomor } = filter;
+  const { class_id, kelasId, meeting, nomor, page = '1', limit = '10', studentName } = filter;
+
+  const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+  const limitNum = Math.max(1, parseInt(String(limit), 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
 
   const where: any = {};
   const targetKelasId = String(kelasId || class_id || '').trim();
@@ -38,10 +148,12 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
 
   // 2. Terapkan filter nomor pertemuan jika ada
   const rawNomor = nomor !== undefined && nomor !== null && nomor !== '' ? nomor : meeting;
+  let parsedNomor: number | null = null;
   if (rawNomor !== undefined && rawNomor !== null && String(rawNomor).trim() !== '') {
     const num = parseInt(String(rawNomor).replace(/\D/g, ''), 10);
     if (!isNaN(num)) {
       where.nomor = num;
+      parsedNomor = num;
     }
   }
 
@@ -50,57 +162,109 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
     orderBy: [{ nomor: 'asc' }, { id: 'asc' }],
   });
 
-  // Kelompokkan data per mata kuliah
+  // Kelompokkan data per mata kuliah untuk tampilan mobile / riwayat (selalu 7 pertemuan per matkul)
   const grouped: Record<string, any> = {};
-  for (const item of list) {
-    const mkName = item.namaMatkul || 'Mata Kuliah';
-    if (!grouped[mkName]) {
-      grouped[mkName] = {
-        nama: mkName,
-        jadwal: jadwalMap[mkName] || '14.00-15.20 Ruang Kuliah',
-        riwayat: [],
-      };
+
+  // 1. Siapkan seluruh 10 mata kuliah dari tabel kelas
+  const masterKelas = await prisma.kelas.findMany({
+    include: { mataKuliah: true },
+    orderBy: { id: 'asc' },
+  });
+
+  for (const k of masterKelas) {
+    const mkName = k.mataKuliah?.nama || 'Mata Kuliah';
+    const topics = defaultTopikByCourse[mkName] || [
+      'Pertemuan 1', 'Pertemuan 2', 'Pertemuan 3', 'Pertemuan 4', 'Pertemuan 5', 'Pertemuan 6', 'Pertemuan 7'
+    ];
+
+    // Petakan data presensi di DB untuk matkul ini dan studentName target (jika difilter)
+    const userAttendance = new Map<number, any>();
+    for (const item of list) {
+      const matchMatkul = (item.namaMatkul || '') === mkName || item.kelasId === k.id;
+      if (matchMatkul) {
+        if (studentName) {
+          if ((item.studentName || '').toLowerCase().trim() !== studentName.toLowerCase().trim()) {
+            continue;
+          }
+        }
+        userAttendance.set(item.nomor, item);
+      }
     }
-    grouped[mkName].riwayat.push({
-      nomor: item.nomor,
-      topik: item.topik,
-      tanggal: item.tanggal,
-      status: item.status,
-    });
+
+    // Bangun riwayat pertemuan: HANYA sertakan pertemuan yang SUDAH diinput oleh dosen
+    const riwayat = [];
+    for (let num = 7; num >= 1; num--) {
+      const existing = userAttendance.get(num);
+      if (existing) {
+        riwayat.push({
+          nomor: num,
+          topik: `Pertemuan ${num}`,
+          tanggal: existing.tanggal || 'Hari ini',
+          status: existing.status === 'Alpa' ? 'Alpa' : existing.status,
+          hasData: true,
+        });
+      }
+    }
+
+    grouped[mkName] = {
+      nama: mkName,
+      jadwal: jadwalMap[mkName] || `${k.hari}, ${k.jamMulai} - ${k.jamSelesai} ${k.ruangan}`,
+      riwayat: riwayat,
+    };
   }
 
-  // Ambil data users mahasiswa untuk mapping NIM
-  const mhsUsers = await prisma.user.findMany({ where: { role: 'mahasiswa' } });
-  const userNimMap = new Map<string, string>();
-  for (const u of mhsUsers) {
-    if (u.name) userNimMap.set(u.name.toLowerCase().trim(), u.nim || '');
+  // 3. Ambil data users mahasiswa aktif (dengan pagination) sehingga tabel selalu menampilkan 4 nama mahasiswa
+  const [totalMhs, mhsUsers] = await Promise.all([
+    prisma.user.count({ where: { role: 'mahasiswa' } }),
+    prisma.user.findMany({
+      where: { role: 'mahasiswa' },
+      orderBy: { name: 'asc' },
+      skip,
+      take: limitNum,
+    }),
+  ]);
+
+  // Petakan record kehadiran per nama mahasiswa untuk nomor pertemuan ini
+  const attendanceByName = new Map<string, any>();
+  for (const item of list) {
+    const key = (item.studentName || '').toLowerCase().trim();
+    if (!attendanceByName.has(key)) {
+      attendanceByName.set(key, item);
+    }
   }
 
-  // Format list presensi mahasiswa per pertemuan
-  const studentList = list.map((item, idx) => {
-    const sName = item.studentName || 'Mahasiswa';
-    const matchedNim = userNimMap.get(sName.toLowerCase().trim()) || `22010100${(idx % 10) + 1}`;
-    const itemTimestamp = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
+  // Format list presensi mahasiswa per mahasiswa (tepat 1 baris per mahasiswa, tidak ada duplikasi)
+  const studentList = mhsUsers.map((user, idx) => {
+    const key = (user.name || '').toLowerCase().trim();
+    const item = attendanceByName.get(key);
+
+    const sName = user.name || 'Mahasiswa';
+    const statusVal = item ? (item.status === 'Alpa' ? 'Alpha' : (item.status || 'Hadir')) : 'Hadir';
+    const meetingNum = item?.nomor || parsedNomor || 1;
+    const dateVal = item?.tanggal || 'Senin, 29 September 2026';
+    const createdAtDate = item?.createdAt || user.createdAt;
+    const itemTimestamp = createdAtDate ? createdAtDate.toISOString() : new Date().toISOString();
+
     return {
-      id: item.id,
-      class_id: item.kelasId,
-      kelasId: item.kelasId,
+      id: item?.id || `khd-${user.id}-${meetingNum}`,
+      class_id: targetKelasId || item?.kelasId || 'kelas-ai',
+      kelasId: targetKelasId || item?.kelasId || 'kelas-ai',
       student_name: sName,
       studentName: sName,
       name: sName,
-      nim: matchedNim,
-      status: item.status === 'Alpa' ? 'Alpha' : (item.status || 'Hadir'),
-      course: item.namaMatkul || 'Mata Kuliah',
-      nomor: item.nomor,
-      topik: item.topik,
-      date: item.tanggal,
-      tanggal: item.tanggal,
-      createdAt: item.createdAt,
+      nim: user.nim || `22010100${idx + 1}`,
+      status: statusVal,
+      course: item?.namaMatkul || targetKelasId || 'Mata Kuliah',
+      nomor: meetingNum,
+      topik: item?.topik || `Materi Pertemuan ${meetingNum}`,
+      date: dateVal,
+      tanggal: dateVal,
+      createdAt: createdAtDate,
       timestamp: itemTimestamp,
-      waktu: item.createdAt ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt)) : item.tanggal,
+      waktu: createdAtDate ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(createdAtDate)) : dateVal,
       finalScore: 85.0 + ((idx * 3) % 12),
       gradeHistory: 'Tugas 88 · Kuis 80 · UTS 84 · UAS 88',
-      notes: item.status === 'Hadir' ? 'Aktif dan tepat waktu di kelas' : 'Perlu konfirmasi surat izin/sakit',
+      notes: statusVal === 'Hadir' ? 'Aktif dan tepat waktu di kelas' : 'Perlu konfirmasi surat izin/sakit',
     };
   });
 
@@ -108,6 +272,12 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
     list,
     studentList,
     grouped,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total: totalMhs,
+      totalPages: Math.ceil(totalMhs / limitNum),
+    },
   };
 };
 
@@ -154,7 +324,7 @@ export const createKehadiranService = async (payload: any) => {
         status: cleanStatus,
         tanggal: tgl,
         namaMatkul: matkul_name || existingKhd.namaMatkul,
-        topik: topik || existingKhd.topik,
+        topik: `Pertemuan ${meetingNumber}`,
         createdAt: new Date(),
       },
     });
@@ -172,7 +342,7 @@ export const createKehadiranService = async (payload: any) => {
       namaMatkul: matkul_name || (validKelas ? 'Mata Kuliah' : 'Kecerdasan Buatan'),
       studentName: sName,
       nomor: meetingNumber,
-      topik: topik || 'Materi Perkuliahan',
+      topik: `Pertemuan ${meetingNumber}`,
       tanggal: tgl,
       status: cleanStatus,
       createdAt: new Date(),

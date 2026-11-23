@@ -116,28 +116,14 @@ export interface MasterNilaiSemester {
 // --- 1. DATA USERS DUMMY ---
 const DEFAULT_USERS: UserSeedData[] = [
   {
-    id: 'user-mhs-001',
-    name: 'Nama Mahasiswa',
-    email: 'mahasiswa@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'mahasiswa',
-    nim: '19746713498174',
-    angkatan: '2023',
-    semester: 4,
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    createdAt: '2026-10-14T15:28:13.530Z',
-  },
-  {
     id: 'user-mhs-brooke',
     name: 'Brooke Everly',
     email: 'brookeverly17@eduinsight.student.ac.id',
-    alternativeEmails: ['brooke.everly@eduinsight.ac.id', 'brookeverly17@eduinsight.mail.com'],
     password: bcrypt.hashSync('password123', 10),
     role: 'mahasiswa',
     nim: '254076512225017',
-    angkatan: '2023',
-    semester: 4,
+    angkatan: '2026',
+    semester: 1,
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
     createdAt: '2026-10-24T16:18:50.615Z',
@@ -145,43 +131,41 @@ const DEFAULT_USERS: UserSeedData[] = [
   {
     id: 'user-mhs-chris',
     name: 'Chris Redfield',
-    email: 'redchris@gmail.com',
-    alternativeEmails: ['chris.redfield@eduinsight.student.ac.id', 'chris@eduinsight.ac.id'],
+    email: 'redchris@eduinsight.student.ac.id',
     password: bcrypt.hashSync('password123', 10),
     role: 'mahasiswa',
     nim: '254076512225018',
-    angkatan: '2023',
-    semester: 4,
+    angkatan: '2026',
+    semester: 1,
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
     createdAt: '2026-10-25T00:51:53.109Z',
   },
   {
-    id: 'user-mhs-002',
-    name: 'Mahasiswa FILKOM',
-    email: 'mahasiswa@gmail.ac.id',
+    id: 'user-mhs-sheren',
+    name: 'Sheren Annabelle',
+    email: 'sheren@eduinsight.student.ac.id',
     password: bcrypt.hashSync('password123', 10),
     role: 'mahasiswa',
-    nim: '19746713498175',
-    angkatan: '2023',
-    semester: 4,
+    nim: '220101001',
+    angkatan: '2026',
+    semester: 1,
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
     createdAt: '2026-10-14T15:28:13.659Z',
   },
   {
-    id: 'user-mhs-sheren',
-    name: 'Sheren Annabelle',
-    email: 'sheren@eduinsight.student.ac.id',
-    alternativeEmails: ['sheren@gmail.com'],
+    id: 'user-mhs-nareswari',
+    name: 'Nareswari Ayu',
+    email: 'nareswari@eduinsight.student.ac.id',
     password: bcrypt.hashSync('password123', 10),
     role: 'mahasiswa',
-    nim: '220101001',
-    angkatan: '2023',
-    semester: 4,
+    nim: '220101004',
+    angkatan: '2026',
+    semester: 1,
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
-    createdAt: '2026-10-14T15:28:13.659Z',
+    createdAt: '2026-10-26T08:00:00.000Z',
   },
   {
     id: 'user-dsn-001',
@@ -193,79 +177,18 @@ const DEFAULT_USERS: UserSeedData[] = [
     nip: '198503152010121002',
     fakultas: 'Ilmu Komputer',
     prodi: 'Teknik Informatika',
-    mataKuliah: ['Kecerdasan Buatan', 'Pemrograman Framework'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-002',
-    name: 'Ir. Tri Astuti, M.T.',
-    email: 'triastuti@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '198204122008122001',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Pemrograman Web'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-003',
-    name: 'Teddy Indra Wijaya, M.Kom.',
-    email: 'teddy@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '198709232014041001',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Basis Data Terdistribusi', 'Internet of Things (IoT)'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-004',
-    name: 'Prof. Bambang Hariyanto, Ph.D.',
-    email: 'bambang@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '197105151998031002',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Keamanan Siber & Jaringan'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-005',
-    name: 'Ivan Gunawan, M.Ds.',
-    email: 'ivangunawan@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '198911202015041003',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Rekayasa Perangkat Lunak', 'UI/UX Design'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-006',
-    name: 'Dra. Endang Sulistyo, M.Stat.',
-    email: 'endang@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '196802101993032001',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Statistika Komputasi'],
-    createdAt: '2026-10-14T15:28:13.802Z',
-  },
-  {
-    id: 'user-dsn-007',
-    name: 'Dr. Rini Handayani, M.M.',
-    email: 'rinihandayani@eduinsight.ac.id',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'dosen',
-    nip: '197906142005012003',
-    fakultas: 'Ilmu Komputer',
-    prodi: 'Teknik Informatika',
-    mataKuliah: ['Kewirausahaan'],
+    mataKuliah: [
+      'Kecerdasan Buatan',
+      'Pemrograman Web',
+      'Basis Data Terdistribusi',
+      'Keamanan Siber & Jaringan',
+      'Rekayasa Perangkat Lunak',
+      'Statistika Komputasi',
+      'Kewirausahaan',
+      'UI/UX Design',
+      'Internet of Things (IoT)',
+      'Pemrograman Framework'
+    ],
     createdAt: '2026-10-14T15:28:13.802Z',
   },
   {
@@ -301,7 +224,7 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Senin',
     jamMulai: '14.00',
     jamSelesai: '15.20',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51366',
@@ -314,11 +237,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Selasa',
     jamMulai: '08.00',
     jamSelesai: '10.00',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51329',
-    dosenNip: '198204122008122001',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-basdat',
@@ -327,11 +250,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Rabu',
     jamMulai: '12.00',
     jamSelesai: '14.00',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51250',
-    dosenNip: '198709232014041001',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-cyber',
@@ -340,11 +263,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Kamis',
     jamMulai: '10.00',
     jamSelesai: '12.00',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51322',
-    dosenNip: '197105151998031002',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-rpl',
@@ -353,11 +276,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Jumat',
     jamMulai: '08.00',
     jamSelesai: '10.30',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51375',
-    dosenNip: '198911202015041003',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-stat',
@@ -366,11 +289,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Jumat',
     jamMulai: '13.30',
     jamSelesai: '15.00',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51389',
-    dosenNip: '196802101993032001',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-kwu',
@@ -379,11 +302,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Senin',
     jamMulai: '08.00',
     jamSelesai: '09.40',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51310',
-    dosenNip: '197906142005012003',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-uiux',
@@ -392,11 +315,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Selasa',
     jamMulai: '13.00',
     jamSelesai: '15.30',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51315',
-    dosenNip: '198911202015041003',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-iot',
@@ -405,11 +328,11 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Rabu',
     jamMulai: '15.00',
     jamSelesai: '17.30',
-    semester: 4,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'VTI51340',
-    dosenNip: '198709232014041001',
+    dosenNip: '198503152010121002',
   },
   {
     id: 'kelas-pfa',
@@ -418,7 +341,7 @@ const MASTER_KELAS: MasterKelas[] = [
     hari: 'Senin',
     jamMulai: '10.20',
     jamSelesai: '13.00',
-    semester: 6,
+    semester: 1,
     tahunAjaran: '2025/2026 Genap',
     status: 'Aktif',
     matkulKode: 'PFA3',
@@ -585,7 +508,7 @@ const MASTER_KEHADIRAN: MasterKehadiran[] = [
   { id: 'khd-iot-5', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 5, topik: 'Konektivitas WiFi & Cloud', tanggal: 'Rabu, 29 Okt 2026', status: 'Hadir' },
   { id: 'khd-iot-6', kelasId: 'kelas-iot', namaMatkul: 'Internet of Things (IoT)', studentName: 'Brooke Everly', nomor: 6, topik: 'Dashboard Monitoring IoT', tanggal: 'Rabu, 5 Nov 2026', status: 'Izin' },
 
-  { id: 'khd-pfa-1', kelasId: 'kelas-pfa', namaMatkul: 'Pemrograman Framework', studentName: 'Sheren', nomor: 1, topik: 'Pengenalan Express & MVC', tanggal: '2026-06-07', status: 'Hadir' },
+  { id: 'khd-pfa-1', kelasId: 'kelas-pfa', namaMatkul: 'Pemrograman Framework', studentName: 'Sheren Annabelle', nomor: 1, topik: 'Pengenalan Express & MVC', tanggal: '2026-06-07', status: 'Hadir' },
 ];
 
 // --- 6. DATA DUMMY EVALUASI AI & DOSEN ---
@@ -623,7 +546,7 @@ const MASTER_EVALUASI: MasterEvaluasi[] = [
     insightPerforma: 'Performa sangat baik pada tugas routing dan komponen.',
     catatanDosen: 'Bagus, pertahankan!',
     dateText: 'Minggu, 23 Januari 2026',
-    lecturerName: 'Ir. Tri Astuti, M.T.',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
     messages: JSON.stringify([
       {
         text: 'Kehadiranmu mulai membaik dibanding minggu sebelumnya. Pertahankan konsistensi kehadiran.',
@@ -650,7 +573,7 @@ const MASTER_EVALUASI: MasterEvaluasi[] = [
     insightPerforma: 'Hasil tugas lab keamanan baik.',
     catatanDosen: null,
     dateText: 'Sabtu, 22 Januari 2026',
-    lecturerName: 'Prof. Bambang Hariyanto, Ph.D.',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
     messages: JSON.stringify([
       {
         text: 'Kehadiran telah memenuhi batas minimum.',
@@ -682,6 +605,40 @@ const MASTER_EVALUASI: MasterEvaluasi[] = [
     ]),
     lecturerNote: 'Pertahankan performa yang baik, tingkatkan keaktifan di kelas.',
   },
+  {
+    id: 'eval-nareswari-01',
+    kelasId: 'kelas-web',
+    studentName: 'Nareswari Ayu',
+    nilaiAkhir: 88.0,
+    trenKehadiran: '92%',
+    indikatorRisiko: 'Rendah',
+    insightPerforma: 'Aktif dalam sesi praktikum frontend dan pengerjaan tugas sangat terstruktur.',
+    catatanDosen: 'Sangat baik, terus kembangkan pemahaman React dan arsitektur komponen.',
+    dateText: 'Selasa, 10 November 2026',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
+    messages: JSON.stringify([
+      { text: 'Pemahaman materi layouting dan komponen React sangat baik.', isPositive: true },
+      { text: 'Kehadiran konsisten dan selalu tepat waktu mengumpulkan tugas.', isPositive: true },
+    ]),
+    lecturerNote: 'Sangat baik, terus kembangkan pemahaman React dan arsitektur komponen.',
+  },
+  {
+    id: 'eval-chris-01',
+    kelasId: 'kelas-ai',
+    studentName: 'Chris Redfield',
+    nilaiAkhir: 84.0,
+    trenKehadiran: '86%',
+    indikatorRisiko: 'Rendah',
+    insightPerforma: 'Pemahaman konsep dasar pencarian dan logika AI baik. Perlu memperhatikan ketepatan waktu pengumpulan tugas.',
+    catatanDosen: 'Pertahankan kemajuan belajarnya, jangan terlambat mengumpulkan laporan.',
+    dateText: 'Senin, 09 November 2026',
+    lecturerName: 'Dr. Ahmad Sahroni, M.Kom.',
+    messages: JSON.stringify([
+      { text: 'Hasil pemahaman teori AI memuaskan.', isPositive: true },
+      { text: 'Tugas terakhir diserahkan mendekati batas tenggat.', isPositive: false },
+    ]),
+    lecturerNote: 'Pertahankan kemajuan belajarnya, jangan terlambat mengumpulkan laporan.',
+  },
 ];
 
 // --- 7. DATA MASTER PENILAIAN ---
@@ -689,7 +646,7 @@ const MASTER_PENILAIAN: MasterPenilaian[] = [
   {
     id: 'penilaian-01',
     kelasId: 'kelas-pfa',
-    studentName: 'Sheren',
+    studentName: 'Sheren Annabelle',
     taskName: 'Pemrograman Framework - Tugas 1',
     score: 90,
   },
@@ -706,6 +663,20 @@ const MASTER_PENILAIAN: MasterPenilaian[] = [
     studentName: 'Brooke Everly',
     taskName: 'Tugas Array & Function',
     score: 92,
+  },
+  {
+    id: 'penilaian-04',
+    kelasId: 'kelas-web',
+    studentName: 'Nareswari Ayu',
+    taskName: 'Tugas Array & Function',
+    score: 90,
+  },
+  {
+    id: 'penilaian-05',
+    kelasId: 'kelas-ai',
+    studentName: 'Chris Redfield',
+    taskName: 'Tugas Pengenalan AI',
+    score: 85,
   },
 ];
 
@@ -906,106 +877,41 @@ async function syncDatabaseWithFrontend(): Promise<void> {
       await prisma.tugas.upsert({
         where: { id: t.id },
         update: {
+          kelasId: t.kelasId,
           judul: t.judul,
           deskripsi: t.deskripsi,
+          lampiran: t.lampiran,
           deadline: t.deadline,
           deadlineText: t.deadlineText,
           category: t.category,
-          lampiran: t.lampiran,
-          kelasId: t.kelasId,
         },
         create: {
           id: t.id,
+          kelasId: t.kelasId,
           judul: t.judul,
           deskripsi: t.deskripsi,
+          lampiran: t.lampiran,
           deadline: t.deadline,
           deadlineText: t.deadlineText,
           category: t.category,
-          lampiran: t.lampiran,
-          kelasId: t.kelasId,
         },
       });
     }
 
-    // 5. Sync Kehadiran
-    for (const kh of MASTER_KEHADIRAN) {
-      await prisma.kehadiran.upsert({
-        where: { id: kh.id },
-        update: {
-          namaMatkul: kh.namaMatkul,
-          studentName: kh.studentName,
-          nomor: kh.nomor,
-          topik: kh.topik,
-          tanggal: kh.tanggal,
-          status: kh.status,
-          kelasId: kh.kelasId,
-        },
-        create: {
-          id: kh.id,
-          namaMatkul: kh.namaMatkul,
-          studentName: kh.studentName,
-          nomor: kh.nomor,
-          topik: kh.topik,
-          tanggal: kh.tanggal,
-          status: kh.status,
-          kelasId: kh.kelasId,
-        },
-      });
-    }
+    // 5. Sync Kehadiran - DISABLED: Kehadiran diisi real-time oleh dosen dari web, jangan diisi dummy
+    // for (const kh of MASTER_KEHADIRAN) {
+    //   await prisma.kehadiran.upsert({ ... });
+    // }
 
-    // 6. Sync Evaluasi
-    for (const ev of MASTER_EVALUASI) {
-      await prisma.evaluasi.upsert({
-        where: { id: ev.id },
-        update: {
-          kelasId: ev.kelasId,
-          studentName: ev.studentName,
-          nilaiAkhir: ev.nilaiAkhir,
-          trenKehadiran: ev.trenKehadiran,
-          indikatorRisiko: ev.indikatorRisiko,
-          insightPerforma: ev.insightPerforma,
-          catatanDosen: ev.catatanDosen,
-          dateText: ev.dateText,
-          lecturerName: ev.lecturerName,
-          messages: ev.messages,
-          lecturerNote: ev.lecturerNote,
-        },
-        create: {
-          id: ev.id,
-          kelasId: ev.kelasId,
-          studentName: ev.studentName,
-          nilaiAkhir: ev.nilaiAkhir,
-          trenKehadiran: ev.trenKehadiran,
-          indikatorRisiko: ev.indikatorRisiko,
-          insightPerforma: ev.insightPerforma,
-          catatanDosen: ev.catatanDosen,
-          dateText: ev.dateText,
-          lecturerName: ev.lecturerName,
-          messages: ev.messages,
-          lecturerNote: ev.lecturerNote,
-        },
-      });
-    }
+    // 6. Sync Evaluasi - DISABLED: Evaluasi dibuat real-time oleh AI / Dosen, jangan diisi dummy
+    // for (const ev of MASTER_EVALUASI) {
+    //   await prisma.evaluasi.upsert({ ... });
+    // }
 
-    // 7. Sync Penilaian
-    for (const p of MASTER_PENILAIAN) {
-      await prisma.penilaian.upsert({
-        where: { id: p.id },
-        update: {
-          kelasId: p.kelasId,
-          studentName: p.studentName,
-          taskName: p.taskName,
-          score: p.score,
-        },
-        create: {
-          id: p.id,
-          kelasId: p.kelasId,
-          studentName: p.studentName,
-          taskName: p.taskName,
-          score: p.score,
-        },
-      });
-    }
+    // 7. Sync Penilaian - DISABLED: Nilai diisi real-time oleh dosen dari web, jangan diisi dummy seed
+    // for (const p of MASTER_PENILAIAN) {
+    //   await prisma.penilaian.upsert({ ... });
+    // }
 
     // 8. Sync Password Settings Dosen
     for (const ps of MASTER_PASSWORD_SETTING) {
@@ -1026,8 +932,6 @@ async function syncDatabaseWithFrontend(): Promise<void> {
         },
       });
     }
-
-    console.log('✅ Sinkronisasi Database MySQL EduInsight (Mobile + Web) Berhasil!');
   } catch (err: any) {
     console.error('❌ Database sync error:', err.message);
   }

@@ -19,6 +19,7 @@ import noteRoutes from './routes/noteRoutes.js';
 import nilaiSemesterRoutes from './routes/nilaiSemesterRoutes.js';
 import evaluatorRoutes from './routes/evaluatorRoutes.js';
 import pengumpulanTugasRoutes from './routes/pengumpulanTugasRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/nilai-semester', nilaiSemesterRoutes);
 app.use('/api/evaluator', evaluatorRoutes);
 app.use('/api/pengumpulan-tugas', pengumpulanTugasRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Fallback 404
 app.use((req: Request, res: Response) => {
@@ -99,14 +101,7 @@ async function startServer() {
   try {
     await initDatabase();
     app.listen(PORT, () => {
-      console.log('');
-      console.log('═══════════════════════════════════════════');
-      console.log('  🎓 EduInsight Backend API (TypeScript)');
-      console.log(`  🚀 Server running on http://localhost:${PORT}`);
-      console.log('  🗄️ Database: MySQL XAMPP (eduinsight_db)');
-      console.log('  📋 All Routes Integrated & Ready');
-      console.log('═══════════════════════════════════════════');
-      console.log('');
+      console.log(`Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('Gagal menjalankan server:', error);

@@ -20,11 +20,12 @@ model User {
   role               String   @default("mahasiswa")
   nim                String?
   nip                String?  @unique
-  angkatan           String?  @default("2023")
-  semester           Int?     @default(4)
+  angkatan           String?  @default("2026")
+  semester           Int?     @default(1)
   fakultas           String?  @default("Ilmu Komputer")
   prodi              String?  @default("Teknik Informatika")
   mataKuliah         String?  @db.Text
+  fcmToken           String?  @db.Text
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -58,7 +59,7 @@ model Kelas {
   hari        String
   jamMulai    String
   jamSelesai  String
-  semester    Int      @default(6)
+  semester    Int      @default(1)
   tahunAjaran String   @default("2025/2026 Genap")
   status      String   @default("Aktif")
   createdAt   DateTime @default(now())
@@ -207,4 +208,20 @@ model TokenBlacklist {
   createdAt DateTime @default(now())
 
   @@map("token_blacklist")
+}
+
+// 12. Entity Notification (Notifikasi Mahasiswa dari Web & Sistem)
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String?
+  type       String   @default("tugas") // tugas, kehadiran, penilaian, evaluasi
+  title      String
+  body       String   @db.Text
+  targetId   String?  // ID tugas / kelas / evaluasi
+  targetType String?  // tugas / kehadiran / penilaian / evaluasi
+  payload    String?  @db.Text // JSON info
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("notifications")
 }

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../data/database.js';
 import { validateJudulTugas } from '../dtos/tugas.dto.js';
+import { createAndSendNotification } from '../services/fcmService.js';
 
 // Mengambil semua data tugas
 export const getAllTugas = async (req: Request, res: Response): Promise<Response> => {
@@ -208,6 +209,30 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
         },
       });
 
+      // Pemicu notifikasi ke mahasiswa
+      try {
+        const kelasData = await prisma.kelas.findUnique({
+          where: { id: targetKelasId },
+          include: { mataKuliah: true },
+        });
+        const className = kelasData?.mataKuliah?.nama || 'Mata Kuliah';
+
+        await createAndSendNotification({
+          type: 'tugas',
+          title: `Tugas Baru: ${taskTitle}`,
+          body: `Dosen menambahkan tugas "${taskTitle}" (${className}). Deadline: ${newTugas.deadlineText || 'Hari ini, 23.59'}`,
+          targetId: newTugas.id,
+          targetType: 'tugas',
+          payload: {
+            taskTitle: taskTitle,
+            className: className,
+            taskId: newTugas.id,
+          },
+        });
+      } catch (errNotif) {
+        console.error('[Notification Error]:', errNotif);
+      }
+
       return res.status(201).json({
         success: true,
         message: 'Tugas berhasil ditambahkan',
@@ -252,7 +277,25 @@ export const updateTugasCategory = async (req: Request, res: Response): Promise<
 export const deleteTugas = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
+    const existingTugas = await prisma.tugas.findUnique({ where: { id: String(id) } });
     await prisma.tugas.delete({ where: { id: String(id) } });
+
+    if (existingTugas) {
+      try {
+        await createAndSendNotification({
+          type: 'tugas',
+          title: `Tugas Dihapus`,
+          body: `Tugas "${existingTugas.judul}" telah dihapus oleh dosen.`,
+          targetId: String(id),
+          targetType: 'tugas',
+          payload: {
+            taskTitle: existingTugas.judul,
+            taskId: existingTugas.id,
+          },
+        });
+      } catch (errNotif) {}
+    }
+
     return res.status(200).json({ success: true, message: `Tugas dengan ID ${id} berhasil dihapus` });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || err });
