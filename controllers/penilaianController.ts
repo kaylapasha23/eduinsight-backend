@@ -23,21 +23,33 @@ export const getAllPenilaian = async (req: Request, res: Response): Promise<Resp
       }),
     ]);
 
-    // 2. Ambil seluruh catatan penilaian untuk kelas yang dipilih (jika ada filter)
+    // 2. Ambil seluruh catatan penilaian manual dan data pengumpulan tugas dari database
     const whereClause = filterKelasId ? { kelasId: filterKelasId } : {};
-    const existingPenilaianList = await prisma.penilaian.findMany({
-      where: whereClause,
-      include: {
-        kelas: {
-          include: {
-            mataKuliah: true,
+    const [existingPenilaianList, allSubmissions] = await Promise.all([
+      prisma.penilaian.findMany({
+        where: whereClause,
+        include: {
+          kelas: {
+            include: {
+              mataKuliah: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      // AMBIL NILAI TUGAS LANGSUNG DARI DATABASE PENGUMPULAN TUGAS
+      (prisma as any).pengumpulanTugas.findMany({
+        where: {
+          ...(filterKelasId ? { tugas: { kelasId: filterKelasId } } : {}),
+        },
+        include: {
+          siswa: true,
+          tugas: true,
+        },
+      }),
+    ]);
 
-    // 3. Kelompokkan catatan nilai per nama mahasiswa (case-insensitive)
+    // 3. Kelompokkan catatan nilai per nama mahasiswa & pengumpulan tugas per student
     const scoresByStudent = new Map<string, any[]>();
     for (const p of existingPenilaianList) {
       const key = (p.studentName || '').toLowerCase().trim();
@@ -47,25 +59,62 @@ export const getAllPenilaian = async (req: Request, res: Response): Promise<Resp
       scoresByStudent.get(key)!.push(p);
     }
 
-    // 4. Buat 1 baris tepat per mahasiswa (tidak ada duplikasi nama atau variabel per tugas)
+    const submissionsByStudent = new Map<string, any[]>();
+    for (const sub of allSubmissions) {
+      const sId = sub.studentId || sub.siswa?.id;
+      if (sId) {
+        if (!submissionsByStudent.has(sId)) {
+          submissionsByStudent.set(sId, []);
+        }
+        submissionsByStudent.get(sId)!.push(sub);
+      }
+      const sNameKey = (sub.siswa?.name || sub.studentName || '').toLowerCase().trim();
+      if (sNameKey) {
+        if (!submissionsByStudent.has(sNameKey)) {
+          submissionsByStudent.set(sNameKey, []);
+        }
+        submissionsByStudent.get(sNameKey)!.push(sub);
+      }
+    }
+
+    // 4. Format nilai setiap mahasiswa: nilai tugas diambil dari database pengumpulan tugas
     const formatted = mhsUsers.map((user, idx) => {
       const key = (user.name || '').toLowerCase().trim();
       const studentPenilaians = scoresByStudent.get(key) || [];
+      const studentSubs = submissionsByStudent.get(user.id) || submissionsByStudent.get(key) || [];
 
-      // Ambil nilai akhir yang tersimpan di DB jika dosen sudah pernah input
-      let scoreVal = 0;
-      let latestCreatedAt = user.createdAt;
-      let matchedKelas = studentPenilaians[0]?.kelas || null;
+      // HITUNG NILAI TUGAS DARI DATABASE PENGUMPULAN TUGAS MAHASISWA
+      const gradedSubs = studentSubs.filter(
+        (s: any) => s.nilai !== null && s.nilai !== undefined && !isNaN(Number(s.nilai))
+      );
 
-      if (studentPenilaians.length > 0) {
-        // Ambil nilai Penilaian Akhir atau nilai terbaru yang tersimpan
-        const finalItem = studentPenilaians.find(p => p.taskName === 'Penilaian Akhir') || studentPenilaians[0];
-        scoreVal = finalItem.score || 0;
-        latestCreatedAt = finalItem.createdAt;
+      let nilaiTugas = 0;
+      if (gradedSubs.length > 0) {
+        const sumTugas = gradedSubs.reduce((acc: number, curr: any) => acc + Number(curr.nilai), 0);
+        nilaiTugas = Math.round(sumTugas / gradedSubs.length);
       } else {
-        // Default 0 jika dosen belum pernah menginput nilai untuk kelas ini
-        scoreVal = 0;
+        const manualTugas = studentPenilaians.find((p) => p.taskName.toLowerCase().includes('tugas'));
+        if (manualTugas && manualTugas.score !== null) {
+          nilaiTugas = manualTugas.score;
+        }
       }
+
+      // Nilai Kuis, UTS, UAS dari tabel penilaian
+      const kuisItem = studentPenilaians.find((p) => p.taskName.toLowerCase().includes('kuis'));
+      const utsItem = studentPenilaians.find((p) => p.taskName.toLowerCase().includes('uts'));
+      const uasItem = studentPenilaians.find((p) => p.taskName.toLowerCase().includes('uas'));
+      const akhirItem = studentPenilaians.find((p) => p.taskName.toLowerCase().includes('akhir'));
+
+      const nilaiKuis = kuisItem?.score ?? (akhirItem?.score ? Math.max(0, akhirItem.score - 5) : 0);
+      const nilaiUts = utsItem?.score ?? (akhirItem?.score ? akhirItem.score : 0);
+      const nilaiUas = uasItem?.score ?? (akhirItem?.score ? akhirItem.score : 0);
+
+      // Hitung skor akhir kumulatif (Tugas 25%, Kuis 15%, UTS 25%, UAS 35%)
+      const finalScore = Math.round(
+        nilaiTugas * 0.25 + nilaiKuis * 0.15 + nilaiUts * 0.25 + nilaiUas * 0.35
+      );
+
+      const matchedKelas = studentPenilaians[0]?.kelas || null;
 
       return {
         id: user.id || `mhs-${idx + 1}`,
@@ -77,14 +126,17 @@ export const getAllPenilaian = async (req: Request, res: Response): Promise<Resp
         nim: user.nim || `22010100${idx + 1}`,
         taskName: 'Penilaian Semester',
         task_name: 'Penilaian Semester',
-        score: scoreVal,
-        tugas: scoreVal,
-        kuis: scoreVal,
-        uts: scoreVal,
-        uas: scoreVal,
+        score: finalScore || (gradedSubs.length > 0 ? nilaiTugas : 0),
+        tugas: nilaiTugas,
+        kuis: nilaiKuis,
+        uts: nilaiUts,
+        uas: nilaiUas,
         kehadiran: 'Hadir',
-        catatan: scoreVal > 0 ? 'Hasil pengerjaan tugas konsisten dan rapi.' : 'Belum ada penilaian.',
-        createdAt: latestCreatedAt,
+        catatan:
+          gradedSubs.length > 0
+            ? `Nilai tugas (${nilaiTugas}) diambil langsung dari database pengumpulan tugas (${gradedSubs.length} tugas dinilai).`
+            : 'Belum ada penilaian pengumpulan tugas.',
+        createdAt: user.createdAt,
         kelas: matchedKelas,
       };
     });
@@ -141,6 +193,31 @@ export const createPenilaian = async (req: Request, res: Response): Promise<Resp
       },
       select: { id: true },
     });
+
+    // Sinkronkan ke database pengumpulan tugas jika nilai tugas diubah
+    if (req.body.tugas !== undefined || (tName && tName.toLowerCase().includes('tugas'))) {
+      const tugasScoreVal = req.body.tugas !== undefined ? Math.round(Number(req.body.tugas)) : finalScore;
+      if (targetUser) {
+        try {
+          const latestSub = await (prisma as any).pengumpulanTugas.findFirst({
+            where: {
+              studentId: targetUser.id,
+              ...(targetKelasId ? { tugas: { kelasId: targetKelasId } } : {}),
+            },
+            orderBy: { submittedAt: 'desc' },
+          });
+          if (latestSub) {
+            await (prisma as any).pengumpulanTugas.update({
+              where: { id: latestSub.id },
+              data: {
+                nilai: tugasScoreVal,
+                statusPenilaian: 'Sudah Dinilai',
+              },
+            });
+          }
+        } catch (_) {}
+      }
+    }
 
     if (existingPenilaian) {
       const updated = await prisma.penilaian.update({

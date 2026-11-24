@@ -6,8 +6,10 @@ import { createAndSendNotification } from '../services/fcmService.js';
 // Mengambil semua data tugas
 export const getAllTugas = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { category } = req.query;
-    const where = category ? { category: String(category) } : {};
+    const { category, kelasId, class_id } = req.query;
+    const where: any = {};
+    if (category) where.category = String(category);
+    if (kelasId || class_id) where.kelasId = String(kelasId || class_id);
 
     const tugasList = await prisma.tugas.findMany({
       where,
@@ -18,61 +20,68 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
             dosen: true,
           },
         },
+        pengumpulan: {
+          include: {
+            siswa: true,
+          },
+        },
       },
       orderBy: { deadline: 'asc' },
     });
 
-    const penilaianList = await prisma.penilaian.findMany();
-    // Hitung jumlah pengumpulan mahasiswa secara dinamis dari tabel pengumpulan_tugas
-    const pengumpulanList = await prisma.pengumpulanTugas.findMany();
     const totalMahasiswa = await prisma.user.count({ where: { role: 'mahasiswa' } });
 
     const formatted = tugasList.map((t: any) => {
-      // Periksa apakah tugas ini sudah dinilai oleh dosen untuk mahasiswa
-      const matchingPenilaian = penilaianList.find((p: any) => 
-        (p.kelasId === t.kelasId || !p.kelasId) &&
-        (p.taskName?.toLowerCase().trim() === t.judul?.toLowerCase().trim() ||
-         t.judul?.toLowerCase().trim().includes(p.taskName?.toLowerCase().trim()) ||
-         p.taskName?.toLowerCase().trim().includes(t.judul?.toLowerCase().trim()))
-      );
-
-      const isGraded = Boolean(matchingPenilaian);
-      const score = matchingPenilaian ? matchingPenilaian.score : null;
-
-      // Hitung pengumpulan aktual dari database
-      const realSubmittedCount = pengumpulanList.filter(
-        (p: any) => p.taskId === t.id && (p.status === 'Diserahkan' || !p.status)
+      const submissions = t.pengumpulan || [];
+      const realSubmittedCount = submissions.length;
+      const unratedCount = submissions.filter(
+        (p: any) => p.statusPenilaian === 'Belum Dinilai' || p.nilai === null || p.nilai === undefined
       ).length;
+
+      // Status tugas untuk UI:
+      // 1. Kategori 'selesai' -> 'Selesai'
+      // 2. Ada pengumpulan yang belum dinilai -> 'Belum Dinilai'
+      // 3. Lainnya -> 'Berjalan'
+      let computedStatus = 'Berjalan';
+      if (t.category === 'selesai') {
+        computedStatus = 'Selesai';
+      } else if (realSubmittedCount > 0 && unratedCount > 0) {
+        computedStatus = 'Belum Dinilai';
+      } else {
+        computedStatus = 'Berjalan';
+      }
 
       return {
         id: t.id,
         class_id: t.kelasId,
+        kelasId: t.kelasId,
         class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
         subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
         nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
         class_code: t.kelas?.kodeGabung || '',
         dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
         title: t.judul,
+        judul: t.judul,
         description: t.deskripsi,
+        deskripsi: t.deskripsi,
         deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
         dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
         deadline_text: t.deadlineText || 'Hari ini, 23.59',
+        deadlineText: t.deadlineText || 'Hari ini, 23.59',
         category: t.category,
-        status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
-        is_graded: isGraded,
-        isGraded: isGraded,
-        score: score,
-        nilai: score,
+        status: computedStatus,
         submittedCount: realSubmittedCount,
         submitted_count: realSubmittedCount,
-        totalStudents: totalMahasiswa || 30,
-        total_students: totalMahasiswa || 30,
+        totalStudents: totalMahasiswa || 4,
+        total_students: totalMahasiswa || 4,
         attachment_name: t.lampiranNama || t.lampiran,
         lampiran_nama: t.lampiranNama || t.lampiran,
         lampiran_url: t.lampiranUrl,
         lampiranNama: t.lampiranNama || t.lampiran,
         lampiranUrl: t.lampiranUrl,
+        lampiran: t.lampiran,
         created_at: t.createdAt,
+        createdAt: t.createdAt,
       };
     });
 
@@ -95,6 +104,11 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
             dosen: true,
           },
         },
+        pengumpulan: {
+          include: {
+            siswa: true,
+          },
+        },
       },
     });
 
@@ -102,149 +116,177 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
       return res.status(404).json({ success: false, message: 'Tugas tidak ditemukan' });
     }
 
-    const matchingPenilaian = await prisma.penilaian.findFirst({
-      where: {
-        taskName: {
-          contains: t.judul,
-        },
+    const submissions = t.pengumpulan || [];
+    const realSubmittedCount = submissions.length;
+    const unratedCount = submissions.filter(
+      (p: any) => p.statusPenilaian === 'Belum Dinilai' || p.nilai === null || p.nilai === undefined
+    ).length;
+
+    let computedStatus = 'Berjalan';
+    if (t.category === 'selesai') {
+      computedStatus = 'Selesai';
+    } else if (realSubmittedCount > 0 && unratedCount > 0) {
+      computedStatus = 'Belum Dinilai';
+    } else {
+      computedStatus = 'Berjalan';
+    }
+
+    const totalMahasiswa = await prisma.user.count({ where: { role: 'mahasiswa' } });
+
+    const formatted = {
+      id: t.id,
+      class_id: t.kelasId,
+      kelasId: t.kelasId,
+      class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
+      class_code: t.kelas?.kodeGabung || '',
+      dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
+      title: t.judul,
+      judul: t.judul,
+      description: t.deskripsi,
+      deskripsi: t.deskripsi,
+      deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+      dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
+      deadline_text: t.deadlineText || 'Hari ini, 23.59',
+      deadlineText: t.deadlineText || 'Hari ini, 23.59',
+      category: t.category,
+      status: computedStatus,
+      submittedCount: realSubmittedCount,
+      submitted_count: realSubmittedCount,
+      totalStudents: totalMahasiswa || 4,
+      total_students: totalMahasiswa || 4,
+      attachment_name: t.lampiranNama || t.lampiran,
+      lampiran_nama: t.lampiranNama || t.lampiran,
+      lampiran_url: t.lampiranUrl,
+      lampiranNama: t.lampiranNama || t.lampiran,
+      lampiranUrl: t.lampiranUrl,
+      lampiran: t.lampiran,
+      created_at: t.createdAt,
+      createdAt: t.createdAt,
+    };
+
+    return res.status(200).json(formatted);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+// Menambah tugas baru
+export const createTugas = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { class_id, kelasId, title, judul, description, deskripsi, deadline, deadline_text, category, attachment_name } = req.body;
+    const taskTitle = (title || judul || '').trim();
+
+    const validation = validateJudulTugas(taskTitle);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.message || 'Judul tugas tidak valid.',
+      });
+    }
+
+    const rawClassId = String(class_id || kelasId || '');
+    let validKelas = rawClassId ? await prisma.kelas.findUnique({ where: { id: rawClassId } }) : null;
+    if (!validKelas) {
+      validKelas = await prisma.kelas.findFirst();
+    }
+    const targetKelasId = validKelas ? validKelas.id : 'kelas-ai';
+
+    // Handle file lampiran dari Multer
+    const file = req.file;
+    let finalLampiranNama = attachment_name || null;
+    let finalLampiranUrl: string | null = null;
+
+    if (file) {
+      finalLampiranNama = file.originalname;
+      finalLampiranUrl = `/uploads/tugas/${file.filename}`;
+    } else if (req.body.lampiranUrl || req.body.lampiranNama) {
+      finalLampiranUrl = req.body.lampiranUrl || null;
+      finalLampiranNama = req.body.lampiranNama || finalLampiranNama;
+    }
+
+    const taskDeskripsi = (description || deskripsi || '').trim();
+
+    // Olah deadline date & deadline text agar akurat sesuai input pengguna
+    let finalDeadlineDate: Date;
+    let finalDeadlineText: string;
+
+    if (deadline) {
+      const dateStr = String(deadline).trim();
+      if (dateStr.includes('T')) {
+        finalDeadlineDate = new Date(dateStr);
+      } else {
+        finalDeadlineDate = new Date(`${dateStr}T23:59:00`);
+        if (isNaN(finalDeadlineDate.getTime())) {
+          finalDeadlineDate = new Date(dateStr);
+        }
+      }
+
+      if (deadline_text && deadline_text.trim()) {
+        finalDeadlineText = deadline_text.trim();
+      } else {
+        const yyyy = finalDeadlineDate.getFullYear();
+        const mm = String(finalDeadlineDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(finalDeadlineDate.getDate()).padStart(2, '0');
+        finalDeadlineText = `${yyyy}-${mm}-${dd} (23:59 WIB)`;
+      }
+    } else {
+      finalDeadlineDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      finalDeadlineText = deadline_text || 'Hari ini, 23.59';
+    }
+
+    const newTugas = await prisma.tugas.create({
+      data: {
+        id: `tugas-${Date.now()}`,
+        kelasId: targetKelasId,
+        judul: taskTitle,
+        deskripsi: taskDeskripsi,
+        deadline: finalDeadlineDate,
+        deadlineText: finalDeadlineText,
+        category: category || 'segera',
+        lampiran: finalLampiranNama,
+        lampiranNama: finalLampiranNama,
+        lampiranUrl: finalLampiranUrl,
       },
     });
 
-    const isGraded = Boolean(matchingPenilaian);
-    const score = matchingPenilaian ? matchingPenilaian.score : null;
-
-      const realSubmittedCount = await prisma.pengumpulanTugas.count({
-        where: {
-          taskId: t.id,
-          status: 'Diserahkan',
-        },
-      });
-      const totalMahasiswa = await prisma.user.count({ where: { role: 'mahasiswa' } });
-
-      const formatted = {
-        id: t.id,
-        class_id: t.kelasId,
-        class_name: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-        subject: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-        nama_kelas: t.kelas?.mataKuliah?.nama || 'Mata Kuliah',
-        class_code: t.kelas?.kodeGabung || '',
-        dosen_name: t.kelas?.dosen?.name || 'Dosen Pengampu',
-        title: t.judul,
-        description: t.deskripsi,
-        deadline: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
-        dueDate: t.deadline ? t.deadline.toISOString().split('T')[0] : (t.deadlineText || 'Hari ini'),
-        deadline_text: t.deadlineText || 'Hari ini, 23.59',
-        category: t.category,
-        status: t.category === 'selesai' ? 'Selesai' : 'Berjalan',
-        is_graded: isGraded,
-        isGraded: isGraded,
-        score: score,
-        nilai: score,
-        submittedCount: realSubmittedCount,
-        submitted_count: realSubmittedCount,
-        totalStudents: totalMahasiswa || 30,
-        total_students: totalMahasiswa || 30,
-        attachment_name: t.lampiranNama || t.lampiran,
-        lampiran_nama: t.lampiranNama || t.lampiran,
-        lampiran_url: t.lampiranUrl,
-        lampiranNama: t.lampiranNama || t.lampiran,
-        lampiranUrl: t.lampiranUrl,
-        created_at: t.createdAt,
-      };
-
-      return res.status(200).json(formatted);
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err?.message || err });
-    }
-  };
-
-  // Menambah tugas baru
-  export const createTugas = async (req: Request, res: Response): Promise<Response> => {
+    // Pemicu notifikasi ke mahasiswa
     try {
-      const { class_id, kelasId, title, judul, description, deskripsi, deadline, deadline_text, category, attachment_name } = req.body;
-      const taskTitle = (title || judul || '').trim();
+      const kelasData = await prisma.kelas.findUnique({
+        where: { id: targetKelasId },
+        include: { mataKuliah: true },
+      });
+      const className = kelasData?.mataKuliah?.nama || 'Mata Kuliah';
 
-      const validation = validateJudulTugas(taskTitle);
-      if (!validation.valid) {
-        return res.status(400).json({
-          success: false,
-          message: validation.message || 'Judul tugas tidak valid.',
-        });
-      }
-
-      const rawClassId = String(class_id || kelasId || '');
-      let validKelas = rawClassId ? await prisma.kelas.findUnique({ where: { id: rawClassId } }) : null;
-      if (!validKelas) {
-        validKelas = await prisma.kelas.findFirst();
-      }
-      const targetKelasId = validKelas ? validKelas.id : 'kelas-ai';
-
-      // Handle file lampiran dari Multer
-      const file = req.file;
-      let finalLampiranNama = attachment_name || null;
-      let finalLampiranUrl: string | null = null;
-
-      if (file) {
-        finalLampiranNama = file.originalname;
-        finalLampiranUrl = `/uploads/tugas/${file.filename}`;
-      } else if (req.body.lampiranUrl || req.body.lampiranNama) {
-        finalLampiranUrl = req.body.lampiranUrl || null;
-        finalLampiranNama = req.body.lampiranNama || finalLampiranNama;
-      }
-
-      const taskDeskripsi = (description || deskripsi || '').trim();
-
-      const newTugas = await prisma.tugas.create({
-        data: {
-          id: `tugas-${Date.now()}`,
-          kelasId: targetKelasId,
-          judul: taskTitle,
-          deskripsi: taskDeskripsi,
-          deadline: deadline ? new Date(deadline) : new Date(Date.now() + 24 * 60 * 60 * 1000),
-          deadlineText: deadline_text || 'Hari ini, 23.59',
-          category: category || 'segera',
-          lampiran: finalLampiranNama,
-          lampiranNama: finalLampiranNama,
-          lampiranUrl: finalLampiranUrl,
+      await createAndSendNotification({
+        type: 'tugas',
+        title: `Tugas Baru: ${taskTitle}`,
+        body: `Dosen menambahkan tugas "${taskTitle}" (${className}). Deadline: ${newTugas.deadlineText || 'Hari ini, 23.59'}`,
+        targetId: newTugas.id,
+        targetType: 'tugas',
+        payload: {
+          taskTitle: taskTitle,
+          className: className,
+          taskId: newTugas.id,
         },
       });
-
-      // Pemicu notifikasi ke mahasiswa
-      try {
-        const kelasData = await prisma.kelas.findUnique({
-          where: { id: targetKelasId },
-          include: { mataKuliah: true },
-        });
-        const className = kelasData?.mataKuliah?.nama || 'Mata Kuliah';
-
-        await createAndSendNotification({
-          type: 'tugas',
-          title: `Tugas Baru: ${taskTitle}`,
-          body: `Dosen menambahkan tugas "${taskTitle}" (${className}). Deadline: ${newTugas.deadlineText || 'Hari ini, 23.59'}`,
-          targetId: newTugas.id,
-          targetType: 'tugas',
-          payload: {
-            taskTitle: taskTitle,
-            className: className,
-            taskId: newTugas.id,
-          },
-        });
-      } catch (errNotif) {
-        console.error('[Notification Error]:', errNotif);
-      }
-
-      return res.status(201).json({
-        success: true,
-        message: 'Tugas berhasil ditambahkan',
-        id: newTugas.id,
-        data: newTugas,
-      });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err?.message || err });
+    } catch (errNotif) {
+      console.error('[Notification Error]:', errNotif);
     }
-  };
 
-// Mengubah tugas (kategori, judul, deskripsi, deadline, lampiran)
+    return res.status(201).json({
+      success: true,
+      message: 'Tugas berhasil ditambahkan',
+      id: newTugas.id,
+      data: newTugas,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+// Mengubah tugas
 export const updateTugasCategory = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
