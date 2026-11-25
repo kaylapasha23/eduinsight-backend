@@ -1,12 +1,17 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
-// Buat direktori uploads/tugas jika belum ada
-const uploadDir = path.join(process.cwd(), 'uploads', 'tugas');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Buat direktori uploads/tugas jika belum ada (gunakan /tmp di Vercel serverless)
+const uploadDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads', 'tugas')
+  : path.join(process.cwd(), 'uploads', 'tugas');
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (_) {}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

@@ -5,6 +5,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { initDatabase } from './data/database.js';
 
 import authRoutes from './routes/authRoutes.js';
@@ -57,11 +58,15 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Expose folder /uploads sebagai static folder
-const uploadsPath = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
+// Expose folder /uploads sebagai static folder (gunakan /tmp di Vercel karena filesystem root read-only)
+const uploadsPath = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+} catch (_) {}
 app.use('/uploads', express.static(uploadsPath));
 
 app.get('/', (req: Request, res: Response) => {
@@ -105,9 +110,20 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+let dbInitPromise: Promise<void> | null = null;
+export function ensureDatabaseReady(): Promise<void> {
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase().catch((err) => {
+      console.error('Database init warning:', err?.message || err);
+      dbInitPromise = null;
+    });
+  }
+  return dbInitPromise;
+}
+
 async function startServer() {
   try {
-    await initDatabase();
+    await ensureDatabaseReady();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
@@ -116,6 +132,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
