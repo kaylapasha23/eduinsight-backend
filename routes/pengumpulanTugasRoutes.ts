@@ -11,6 +11,18 @@ router.patch(
   pengumpulanTugasController.updateNilaiPengumpulan,
 );
 
+// GET /api/pengumpulan-tugas/:id/file - Preview / Download berkas tugas langsung tanpa hambatan CDN
+router.get(
+  '/:id/file',
+  pengumpulanTugasController.serveSubmissionFile,
+);
+
+// GET /api/pengumpulan-tugas/:id/preview - Isi berkas dalam JSON base64 (kebal intercept IDM)
+router.get(
+  '/:id/preview',
+  pengumpulanTugasController.previewSubmissionFile,
+);
+
 // GET /api/pengumpulan-tugas/:id
 router.get(
   '/:id',

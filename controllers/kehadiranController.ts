@@ -8,7 +8,7 @@ export const getKehadiran = async (req: Request, res: Response): Promise<Respons
   try {
     const { class_id, kelasId, meeting, nomor, view, page, limit } = req.query;
     const user = (req as any).user;
-    const studentName = (req.query.studentName || req.query.student_name || (user?.role === 'mahasiswa' ? user.name : (view === 'courses' ? 'Brooke Everly' : undefined))) as string | undefined;
+    const studentName = (req.query.studentName || req.query.student_name || (user?.role === 'mahasiswa' ? user.name : undefined)) as string | undefined;
 
     const { list, studentList, grouped, pagination } = await kehadiranService.getKehadiranService({
       class_id: class_id as string,

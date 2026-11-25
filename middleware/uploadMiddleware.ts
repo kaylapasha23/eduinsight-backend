@@ -23,14 +23,27 @@ const storage = multer.diskStorage({
   },
 });
 
-const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.zip', '.rar', '.png', '.jpg', '.jpeg'];
+const allowedExtensions = [
+  // Dokumen, Spreadsheet, Presentasi, Teks
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.ppt', '.pptx', '.txt', '.rtf',
+  // Arsip & Kompresi
+  '.zip', '.rar', '.7z', '.tar', '.gz',
+  // Media Gambar
+  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.bmp',
+  // Media Video
+  '.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv',
+  // Media Audio
+  '.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac',
+  // Kode Program, Database & Konfigurasi
+  '.sql', '.json', '.xml', '.py', '.js', '.ts', '.html', '.css', '.c', '.cpp', '.java', '.kt', '.dart'
+];
 
 const fileFilter: multer.Options['fileFilter'] = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`Tipe file tidak didukung (${ext}). Harap unggah file dokumen, arsip, atau gambar.`));
+    cb(new Error(`Tipe file tidak didukung (${ext}). Harap unggah file dokumen, media (audio/video/gambar), arsip, spreadsheet, atau kode program.`));
   }
 };
 

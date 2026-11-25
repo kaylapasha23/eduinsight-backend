@@ -23,15 +23,10 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
     const user = (req as any).user;
     const queryStudent = (req.query.studentName || req.query.name || req.query.student_name) as string | undefined;
 
-    // Tentukan mahasiswa target
-    let targetStudentName = queryStudent;
+    // Tentukan mahasiswa target secara ketat berdasarkan query atau user yang sedang login
+    let targetStudentName = queryStudent ? String(queryStudent).trim() : undefined;
     if (!targetStudentName && user && user.role === 'mahasiswa') {
-      targetStudentName = user.name;
-    }
-    if (!targetStudentName) {
-      // Default ke mahasiswa pertama jika tidak ada auth/query
-      const firstMhs = await prisma.user.findFirst({ where: { role: 'mahasiswa' } });
-      targetStudentName = firstMhs?.name || 'Brooke Everly';
+      targetStudentName = String(user.name || '').trim();
     }
 
     // Ambil seluruh 10 kelas & mata kuliah aktif
@@ -40,13 +35,15 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
       orderBy: { id: 'asc' },
     });
 
-    // Ambil nilai yang diinput dosen untuk mahasiswa target
-    const scores = await prisma.penilaian.findMany({
-      where: {
-        studentName: { equals: targetStudentName },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Ambil nilai yang diinput dosen HANYA untuk mahasiswa target (kosong jika tidak ada target)
+    const scores = targetStudentName
+      ? await prisma.penilaian.findMany({
+          where: {
+            studentName: { equals: targetStudentName },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
 
     // Kelompokkan skor berdasarkan kelasId
     const scoreMap = new Map<string, number>();

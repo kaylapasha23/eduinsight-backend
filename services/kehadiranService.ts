@@ -177,17 +177,20 @@ export const getKehadiranService = async (filter: KehadiranFilter) => {
       'Pertemuan 1', 'Pertemuan 2', 'Pertemuan 3', 'Pertemuan 4', 'Pertemuan 5', 'Pertemuan 6', 'Pertemuan 7'
     ];
 
-    // Petakan data presensi di DB untuk matkul ini dan studentName target (jika difilter)
+    // Petakan data presensi di DB untuk matkul ini dan studentName target
+    // Jika view=courses tanpa studentName, biarkan kosong agar tidak mencampur presensi mahasiswa lain
     const userAttendance = new Map<number, any>();
-    for (const item of list) {
-      const matchMatkul = (item.namaMatkul || '') === mkName || item.kelasId === k.id;
-      if (matchMatkul) {
-        if (studentName) {
-          if ((item.studentName || '').toLowerCase().trim() !== studentName.toLowerCase().trim()) {
-            continue;
+    if (studentName || filter.view !== 'courses') {
+      for (const item of list) {
+        const matchMatkul = (item.namaMatkul || '') === mkName || item.kelasId === k.id;
+        if (matchMatkul) {
+          if (studentName) {
+            if ((item.studentName || '').toLowerCase().trim() !== studentName.toLowerCase().trim()) {
+              continue;
+            }
           }
+          userAttendance.set(item.nomor, item);
         }
-        userAttendance.set(item.nomor, item);
       }
     }
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../data/database.js';
 import { validateJudulTugas } from '../dtos/tugas.dto.js';
 import { createAndSendNotification } from '../services/fcmService.js';
+import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 
 // Mengambil semua data tugas
 export const getAllTugas = async (req: Request, res: Response): Promise<Response> => {
@@ -31,12 +32,20 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
 
     const totalMahasiswa = await prisma.user.count({ where: { role: 'mahasiswa' } });
 
+    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || null;
+
     const formatted = tugasList.map((t: any) => {
       const submissions = t.pengumpulan || [];
       const realSubmittedCount = submissions.length;
       const unratedCount = submissions.filter(
         (p: any) => p.statusPenilaian === 'Belum Dinilai' || p.nilai === null || p.nilai === undefined
       ).length;
+
+      const mySubmission = currentUserId
+        ? submissions.find((p: any) => p.studentId === currentUserId)
+        : null;
+      const isGraded = mySubmission ? (mySubmission.statusPenilaian === 'Sudah Dinilai' || (mySubmission.nilai !== null && mySubmission.nilai !== undefined)) : false;
+      const score = mySubmission ? mySubmission.nilai : null;
 
       // Status tugas untuk UI:
       // 1. Kategori 'selesai' -> 'Selesai'
@@ -80,6 +89,19 @@ export const getAllTugas = async (req: Request, res: Response): Promise<Response
         lampiranNama: t.lampiranNama || t.lampiran,
         lampiranUrl: t.lampiranUrl,
         lampiran: t.lampiran,
+        isGraded,
+        is_graded: isGraded,
+        score,
+        nilai: score,
+        mySubmission: mySubmission ? {
+          id: mySubmission.id,
+          fileName: mySubmission.fileName,
+          fileUrl: mySubmission.fileUrl,
+          linkRepo: mySubmission.linkRepo,
+          status: mySubmission.status,
+          nilai: mySubmission.nilai,
+          statusPenilaian: mySubmission.statusPenilaian,
+        } : null,
         created_at: t.createdAt,
         createdAt: t.createdAt,
       };
@@ -133,6 +155,13 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
 
     const totalMahasiswa = await prisma.user.count({ where: { role: 'mahasiswa' } });
 
+    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || null;
+    const mySubmission = currentUserId
+      ? submissions.find((p: any) => p.studentId === currentUserId)
+      : null;
+    const isGraded = mySubmission ? (mySubmission.statusPenilaian === 'Sudah Dinilai' || (mySubmission.nilai !== null && mySubmission.nilai !== undefined)) : false;
+    const score = mySubmission ? mySubmission.nilai : null;
+
     const formatted = {
       id: t.id,
       class_id: t.kelasId,
@@ -162,6 +191,19 @@ export const getTugasById = async (req: Request, res: Response): Promise<Respons
       lampiranNama: t.lampiranNama || t.lampiran,
       lampiranUrl: t.lampiranUrl,
       lampiran: t.lampiran,
+      isGraded,
+      is_graded: isGraded,
+      score,
+      nilai: score,
+      mySubmission: mySubmission ? {
+        id: mySubmission.id,
+        fileName: mySubmission.fileName,
+        fileUrl: mySubmission.fileUrl,
+        linkRepo: mySubmission.linkRepo,
+        status: mySubmission.status,
+        nilai: mySubmission.nilai,
+        statusPenilaian: mySubmission.statusPenilaian,
+      } : null,
       created_at: t.createdAt,
       createdAt: t.createdAt,
     };
@@ -200,7 +242,8 @@ export const createTugas = async (req: Request, res: Response): Promise<Response
 
     if (file) {
       finalLampiranNama = file.originalname;
-      finalLampiranUrl = `/uploads/tugas/${file.filename}`;
+      const cloudRes = await uploadFileToCloudinary(file.path, 'eduinsight/tugas');
+      finalLampiranUrl = cloudRes?.secureUrl || `/uploads/tugas/${file.filename}`;
     } else if (req.body.lampiranUrl || req.body.lampiranNama) {
       finalLampiranUrl = req.body.lampiranUrl || null;
       finalLampiranNama = req.body.lampiranNama || finalLampiranNama;

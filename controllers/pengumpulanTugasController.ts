@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '../data/database.js';
 import { NilaiPengumpulanSchema } from '../dtos/pengumpulanTugas.dto.js';
+import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
+import { createAndSendNotification } from '../services/fcmService.js';
 
 function formatTanggalJam(date: Date | string | null | undefined): string {
   if (!date) return '23 Nov 2026, 14.30';
@@ -58,53 +62,7 @@ export const getPengumpulanByTugasId = async (req: Request, res: Response): Prom
       orderBy: { name: 'asc' },
     });
 
-    // Jika tabel pengumpulan_tugas untuk tugas ini masih kosong di DB, sinkronkan dari data mahasiswa asli
-    if (submissions.length === 0 && allStudents.length > 0) {
-      try {
-        const seedRows = allStudents.map((mhs, idx) => {
-          // 3 mahasiswa pertama sudah dinilai, 1 belum dinilai
-          const isGraded = idx < allStudents.length - 1;
-          const sampleScores = [95, 85, 90, 88];
-          const score = isGraded ? sampleScores[idx % sampleScores.length] : null;
-          const statusPenilaian = isGraded ? 'Sudah Dinilai' : 'Belum Dinilai';
-          const isLate = idx === 1; // Chris contohnya status terlambat
-          const subDate = new Date(Date.now() - (idx + 1) * 3600 * 1000 * 12);
-          const safeName = mhs.name.replace(/\s+/g, '_');
-          const taskSlug = tugas.judul.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          const userSlug = mhs.name.toLowerCase().replace(/\s+/g, '-');
-
-          return {
-            id: `sub-${tugas.id}-${mhs.id}`,
-            taskId: tugas.id,
-            studentId: mhs.id,
-            fileName: `Laporan_${safeName}.pdf`,
-            fileUrl: `/uploads/tugas/Laporan_${safeName}.pdf`,
-            linkRepo: `https://github.com/${userSlug}/${taskSlug}`,
-            status: isLate ? 'Terlambat' : 'Diserahkan',
-            submittedAt: subDate,
-            nilai: score,
-            statusPenilaian,
-          };
-        });
-
-        await (prisma as any).pengumpulanTugas.createMany({
-          data: seedRows,
-          skipDuplicates: true,
-        });
-
-        submissions = await (prisma as any).pengumpulanTugas.findMany({
-          where: { taskId: String(id) },
-          include: {
-            siswa: true,
-          },
-          orderBy: { submittedAt: 'desc' },
-        });
-      } catch (seedErr) {
-        console.warn('[SEED PENGUMPULAN WARNING]:', seedErr);
-      }
-    }
-
-    // 3. Hitung statistik pengumpulan aktual langsung dari database
+    // 3. Hitung statistik pengumpulan aktual langsung dari database (tanpa dummy seed)
     const totalMahasiswa = allStudents.length > 0 ? allStudents.length : submissions.length;
     const jumlahTerkumpul = submissions.length;
     const persentaseTerkumpul = totalMahasiswa > 0 ? Math.round((jumlahTerkumpul / totalMahasiswa) * 100) : 0;
@@ -116,11 +74,27 @@ export const getPengumpulanByTugasId = async (req: Request, res: Response): Prom
     // 4. Format daftar pengumpulan
     const deadlineDate = tugas.deadline ? new Date(tugas.deadline) : null;
 
+    const uploadDir = path.join(process.cwd(), 'uploads', 'tugas');
+    const filesOnDisk = fs.existsSync(uploadDir) ? fs.readdirSync(uploadDir) : [];
+
     const daftarPengumpulan = submissions.map((item: any, idx: number) => {
       const studentName = item.siswa?.name || item.studentName || `Mahasiswa ${idx + 1}`;
       const nim = item.siswa?.nim || item.nim || `22010100${(idx % 10) + 1}`;
       const subDate = item.submittedAt ? new Date(item.submittedAt) : new Date();
       const isLate = deadlineDate ? subDate.getTime() > deadlineDate.getTime() : item.status === 'Terlambat';
+
+      // Cari URL file lokal langsung berakhiran ekstensi (.pdf, .jpg, dll) agar browser langsung menampilkan preview
+      let directUrl = item.fileUrl ? `/api/pengumpulan-tugas/${item.id}/file` : null;
+      if (item.fileName && filesOnDisk.length > 0) {
+        const baseSub = path.parse(item.fileName).name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matched = filesOnDisk.find((f) => {
+          const baseDisk = path.parse(f).name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return baseSub && (baseDisk.startsWith(baseSub) || baseDisk.includes(baseSub));
+        });
+        if (matched) {
+          directUrl = `/uploads/tugas/${matched}`;
+        }
+      }
 
       return {
         id: String(item.id),
@@ -132,9 +106,10 @@ export const getPengumpulanByTugasId = async (req: Request, res: Response): Prom
         submittedAt: subDate.toISOString(),
         waktuPengumpulan: formatTanggalJam(subDate),
         statusWaktu: isLate ? 'Terlambat' : 'Tepat Waktu',
-        fileName: item.fileName || `${studentName.replace(/\s+/g, '_')}_Tugas.pdf`,
-        fileUrl: item.fileUrl || `/uploads/${item.fileName || 'tugas.pdf'}`,
-        linkRepo: item.linkRepo || `https://github.com/${studentName.toLowerCase().replace(/\s+/g, '-')}/tugas`,
+        fileName: item.fileName || null,
+        fileUrl: directUrl,
+        cloudinaryUrl: item.fileUrl || null,
+        linkRepo: item.linkRepo || null,
         nilai: item.nilai !== undefined ? item.nilai : null,
         statusPenilaian: item.statusPenilaian || (item.nilai !== null && item.nilai !== undefined ? 'Sudah Dinilai' : 'Belum Dinilai'),
       };
@@ -199,7 +174,10 @@ export const getPengumpulanByTugasId = async (req: Request, res: Response): Prom
 export const getMyPengumpulan = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || 'user-mhs-brooke';
+    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || null;
+    if (!currentUserId) {
+      return res.status(200).json({ success: true, submitted: false, data: null });
+    }
 
     const submission = await (prisma as any).pengumpulanTugas.findFirst({
       where: {
@@ -238,7 +216,8 @@ export const getMyPengumpulan = async (req: Request, res: Response): Promise<Res
         waktuPengumpulan: formatTanggalJam(subDate),
         statusWaktu: submission.status === 'Terlambat' ? 'Terlambat' : 'Tepat Waktu',
         fileName: submission.fileName,
-        fileUrl: submission.fileUrl,
+        fileUrl: submission.fileUrl ? `/api/pengumpulan-tugas/${submission.id}/file` : null,
+        cloudinaryUrl: submission.fileUrl || null,
         linkRepo: submission.linkRepo,
         nilai: submission.nilai !== undefined ? submission.nilai : null,
         statusPenilaian: submission.statusPenilaian || (submission.nilai !== null ? 'Sudah Dinilai' : 'Belum Dinilai'),
@@ -261,7 +240,13 @@ export const getMyPengumpulan = async (req: Request, res: Response): Promise<Res
 export const submitPengumpulan = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const currentUserId = (req as any).user?.id || (req.body.studentId as string) || 'user-mhs-brooke';
+    const currentUserId = (req as any).user?.id || (req.body.studentId as string) || null;
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Sesi mahasiswa tidak ditemukan. Silakan login ulang.',
+      });
+    }
     const linkRepo = req.body.linkRepo ? String(req.body.linkRepo).trim() : null;
     const file = req.file;
 
@@ -277,7 +262,7 @@ export const submitPengumpulan = async (req: Request, res: Response): Promise<Re
       });
     }
 
-    if (!file && !linkRepo) {
+    if (!file && !linkRepo && !req.body.fileName) {
       return res.status(400).json({
         success: false,
         message: 'Harap lampirkan file tugas atau tautan repositori.',
@@ -297,8 +282,17 @@ export const submitPengumpulan = async (req: Request, res: Response): Promise<Re
       },
     });
 
-    const fileName = file ? file.originalname : existing?.fileName || null;
-    const fileUrl = file ? `/uploads/tugas/${file.filename}` : existing?.fileUrl || null;
+    let fileName = existing?.fileName || null;
+    let fileUrl = existing?.fileUrl || null;
+
+    if (file) {
+      fileName = file.originalname;
+      const cloudRes = await uploadFileToCloudinary(file.path, 'eduinsight/submissions');
+      fileUrl = cloudRes?.secureUrl || `/uploads/tugas/${file.filename}`;
+    } else {
+      if (req.body.fileName) fileName = String(req.body.fileName);
+      if (req.body.fileUrl) fileUrl = String(req.body.fileUrl);
+    }
 
     let submission: any;
     if (existing) {
@@ -349,7 +343,8 @@ export const submitPengumpulan = async (req: Request, res: Response): Promise<Re
         waktuPengumpulan: formatTanggalJam(submission.submittedAt),
         statusWaktu: submission.status === 'Terlambat' ? 'Terlambat' : 'Tepat Waktu',
         fileName: submission.fileName,
-        fileUrl: submission.fileUrl,
+        fileUrl: submission.fileUrl ? `/api/pengumpulan-tugas/${submission.id}/file` : null,
+        cloudinaryUrl: submission.fileUrl || null,
         linkRepo: submission.linkRepo,
         nilai: submission.nilai,
         statusPenilaian: submission.statusPenilaian,
@@ -371,7 +366,13 @@ export const submitPengumpulan = async (req: Request, res: Response): Promise<Re
 export const deleteMyPengumpulan = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || 'user-mhs-brooke';
+    const currentUserId = (req as any).user?.id || (req.query.studentId as string) || null;
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Sesi mahasiswa tidak ditemukan. Silakan login ulang.',
+      });
+    }
 
     const existing = await (prisma as any).pengumpulanTugas.findFirst({
       where: {
@@ -489,25 +490,43 @@ export const updateNilaiPengumpulan = async (req: Request, res: Response): Promi
           });
         }
 
-        // Simpan notifikasi ke database untuk mahasiswa (sesuai skema notifications di DB)
+        // Simpan notifikasi nilai tugas untuk mahasiswa
+        const notifTitle = `Nilai Tugas: ${taskName}`;
+        const notifBody = `Dosen telah memberikan nilai ${finalScore} untuk tugas ${taskName} (${matkulName})`;
+        const notifPayload = {
+          taskId: String(updatedSubmission.taskId),
+          taskTitle: taskName,
+          className: matkulName,
+          score: finalScore,
+          studentName,
+        };
+
         await prisma.notification.create({
           data: {
             id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             userId: updatedSubmission.siswa.id,
-            type: 'penilaian',
-            title: `Nilai Baru: ${taskName}`,
-            body: `Dosen telah merilis nilai untuk ${taskName} (${matkulName}): ${finalScore}`,
-            targetId: String(id),
-            targetType: 'penilaian',
-            payload: JSON.stringify({
-              studentName,
-              taskName,
-              score: finalScore,
-              matkul: matkulName,
-            }),
+            type: 'tugas',
+            title: notifTitle,
+            body: notifBody,
+            targetId: String(updatedSubmission.taskId),
+            targetType: 'tugas',
+            payload: JSON.stringify(notifPayload),
             isRead: false,
           },
         });
+
+        // Kirim Push Notification FCM ke device mahasiswa
+        try {
+          await createAndSendNotification({
+            userId: updatedSubmission.siswa.id,
+            type: 'tugas',
+            title: notifTitle,
+            body: notifBody,
+            targetId: String(updatedSubmission.taskId),
+            targetType: 'tugas',
+            payload: notifPayload,
+          });
+        } catch (_) {}
       }
     } catch (syncErr) {
       // Ignore sync error jika notifikasi/penilaian opsional
@@ -534,10 +553,124 @@ export const updateNilaiPengumpulan = async (req: Request, res: Response): Promi
   }
 };
 
+export const serveSubmissionFile = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const submission = await (prisma as any).pengumpulanTugas.findUnique({
+      where: { id: String(id) },
+    });
+
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Data pengumpulan tidak ditemukan' });
+    }
+
+    // 1. Cek file fisik di uploads/tugas
+    const uploadDir = path.join(process.cwd(), 'uploads', 'tugas');
+    if (fs.existsSync(uploadDir)) {
+      const filesOnDisk = fs.readdirSync(uploadDir);
+      const baseSub = path.parse(submission.fileName || '').name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      const matched = filesOnDisk.find((f) => {
+        const baseDisk = path.parse(f).name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return baseSub && (baseDisk.startsWith(baseSub) || baseDisk.includes(baseSub));
+      });
+
+      if (matched) {
+        return res.redirect(`/uploads/tugas/${encodeURIComponent(matched)}`);
+      }
+    }
+
+    // 2. Jika file fisik belum ditemukan, redirect ke Cloudinary URL
+    if (submission.fileUrl) {
+      return res.redirect(submission.fileUrl);
+    }
+
+    return res.status(404).json({ success: false, message: 'Berkas tidak ditemukan' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+const PREVIEW_MIME: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.txt': 'text/plain',
+};
+
+/**
+ * GET /api/pengumpulan-tugas/:id/preview
+ * Mengirim isi berkas sebagai JSON base64 agar tidak dicegat download manager (IDM),
+ * karena IDM hanya mencegat respons ber-Content-Type dokumen/media, bukan JSON.
+ */
+export const previewSubmissionFile = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const submission = await (prisma as any).pengumpulanTugas.findUnique({
+      where: { id: String(id) },
+    });
+
+    if (!submission || !submission.fileName) {
+      return res.status(404).json({ success: false, message: 'Berkas pengumpulan tidak ditemukan' });
+    }
+
+    const uploadDir = path.join(process.cwd(), 'uploads', 'tugas');
+    const filesOnDisk = fs.existsSync(uploadDir) ? fs.readdirSync(uploadDir) : [];
+    const baseSub = path.parse(submission.fileName).name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const matched = filesOnDisk.find((f) => {
+      const baseDisk = path.parse(f).name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return baseSub && (baseDisk.startsWith(baseSub) || baseDisk.includes(baseSub));
+    });
+
+    let buffer: Buffer | null = null;
+    let ext = path.extname(submission.fileName).toLowerCase();
+
+    if (matched) {
+      buffer = fs.readFileSync(path.join(uploadDir, matched));
+      ext = path.extname(matched).toLowerCase();
+    } else if (submission.fileUrl && /^https?:\/\//i.test(submission.fileUrl)) {
+      // Fallback: ambil dari Cloudinary di sisi server
+      const remote = await fetch(submission.fileUrl);
+      if (remote.ok) {
+        buffer = Buffer.from(await remote.arrayBuffer());
+      }
+    }
+
+    if (!buffer) {
+      return res.status(404).json({ success: false, message: 'Berkas fisik tidak ditemukan di server' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        fileName: submission.fileName,
+        mimeType: PREVIEW_MIME[ext] || 'application/octet-stream',
+        size: buffer.length,
+        base64: buffer.toString('base64'),
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
 export default {
+  previewSubmissionFile,
   getPengumpulanByTugasId,
   getMyPengumpulan,
   submitPengumpulan,
   deleteMyPengumpulan,
   updateNilaiPengumpulan,
+  serveSubmissionFile,
 };

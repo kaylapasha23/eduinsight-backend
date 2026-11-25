@@ -872,31 +872,31 @@ async function syncDatabaseWithFrontend(): Promise<void> {
       }
     }
 
-    // 4. Sync Tugas
-    for (const t of MASTER_TUGAS) {
-      await prisma.tugas.upsert({
-        where: { id: t.id },
-        update: {
-          kelasId: t.kelasId,
-          judul: t.judul,
-          deskripsi: t.deskripsi,
-          lampiran: t.lampiran,
-          deadline: t.deadline,
-          deadlineText: t.deadlineText,
-          category: t.category,
-        },
-        create: {
-          id: t.id,
-          kelasId: t.kelasId,
-          judul: t.judul,
-          deskripsi: t.deskripsi,
-          lampiran: t.lampiran,
-          deadline: t.deadline,
-          deadlineText: t.deadlineText,
-          category: t.category,
-        },
-      });
-    }
+    // 4. Sync Tugas - DISABLED: Tugas dibuat real-time oleh dosen dari web, jangan diisi dummy seed
+    // for (const t of MASTER_TUGAS) {
+    //   await prisma.tugas.upsert({
+    //     where: { id: t.id },
+    //     update: {
+    //       kelasId: t.kelasId,
+    //       judul: t.judul,
+    //       deskripsi: t.deskripsi,
+    //       lampiran: t.lampiran,
+    //       deadline: t.deadline,
+    //       deadlineText: t.deadlineText,
+    //       category: t.category,
+    //     },
+    //     create: {
+    //       id: t.id,
+    //       kelasId: t.kelasId,
+    //       judul: t.judul,
+    //       deskripsi: t.deskripsi,
+    //       lampiran: t.lampiran,
+    //       deadline: t.deadline,
+    //       deadlineText: t.deadlineText,
+    //       category: t.category,
+    //     },
+    //   });
+    // }
 
     // 5. Sync Kehadiran - DISABLED: Kehadiran diisi real-time oleh dosen dari web, jangan diisi dummy
     // for (const kh of MASTER_KEHADIRAN) {

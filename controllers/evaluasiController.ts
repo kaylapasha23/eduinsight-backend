@@ -5,9 +5,26 @@ import { createAndSendNotification } from '../services/fcmService.js';
 // Ambil data evaluasi mahasiswa (AI Evaluation Card)
 export const getEvaluasi = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const list = await prisma.evaluasi.findMany({
+    const user = (req as any).user;
+    const queryStudent = (req.query.studentName || req.query.student_name) as string | undefined;
+
+    // Isolasi per mahasiswa: mahasiswa hanya boleh melihat evaluasi miliknya sendiri
+    const targetStudentName = queryStudent
+      ? String(queryStudent).trim()
+      : user?.role === 'mahasiswa'
+        ? String(user.name || '').trim()
+        : undefined;
+
+    const allList = await prisma.evaluasi.findMany({
       orderBy: { createdAt: 'desc' },
     });
+
+    const list = targetStudentName
+      ? allList.filter(
+          (ev: any) =>
+            (ev.studentName || '').toLowerCase().trim() === targetStudentName.toLowerCase(),
+        )
+      : allList;
 
     const formatted = list.map((ev: any) => {
       let messages: any[] = [];
