@@ -6,7 +6,8 @@
   "scripts": {
     "start": "tsx server.ts",
     "dev": "tsx watch server.ts",
-    "build": "tsc"
+    "build": "prisma generate && prisma db push",
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "authentication",
@@ -32,14 +33,14 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
-    "prisma": "^6.19.3",
     "ts-node-dev": "^2.0.0",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }

@@ -7,15 +7,23 @@ import { prisma } from '../data/database.js';
 let firebaseApp: App | null = null;
 
 try {
+  const envJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
   const serviceAccountPath = path.join(process.cwd(), 'firebase-admin.json');
-  if (fs.existsSync(serviceAccountPath)) {
+
+  if (envJson) {
+    const serviceAccount = JSON.parse(envJson);
+    firebaseApp = initializeApp({
+      credential: cert(serviceAccount),
+    });
+    console.log('[FCM] Firebase Admin SDK initialized from FIREBASE_SERVICE_ACCOUNT_JSON');
+  } else if (fs.existsSync(serviceAccountPath)) {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
     firebaseApp = initializeApp({
       credential: cert(serviceAccount),
     });
     console.log('[FCM] Firebase Admin SDK initialized successfully');
   } else {
-    console.warn('[FCM] firebase-admin.json not found, push notifications to devices will be simulated');
+    console.warn('[FCM] firebase-admin.json / FIREBASE_SERVICE_ACCOUNT_JSON not found, push notifications will be simulated');
   }
 } catch (err: any) {
   console.error('[FCM] Error initializing Firebase Admin:', err?.message || err);

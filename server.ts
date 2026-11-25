@@ -31,12 +31,20 @@ const PORT = process.env.PORT || 3000;
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Izinkan request tanpa origin (mobile apps, Postman)
+      // Izinkan request tanpa origin (mobile apps, Postman, health check)
       if (!origin) return callback(null, true);
 
-      // Izinkan localhost port berapapun (Flutter Web, Next.js web)
+      // Izinkan localhost & domain deployment publik (Vercel, Render, Netlify, atau CORS_ORIGINS)
       const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-      if (isLocal) return callback(null, true);
+      const isHosted = /^https:\/\/.*\.(vercel\.app|onrender\.com|netlify\.app|railway\.app)$/.test(origin);
+      const extraOrigins = (process.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      if (isLocal || isHosted || extraOrigins.includes(origin) || extraOrigins.includes('*')) {
+        return callback(null, true);
+      }
 
       return callback(new Error('Origin tidak diizinkan oleh CORS'));
     },
