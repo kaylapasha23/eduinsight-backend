@@ -77,12 +77,31 @@ export async function createAndSendNotification(params: SendPushParams) {
       tokens = users.map((u) => u.fcmToken!).filter(Boolean);
     }
 
-    // 3. Kirim push notification ke perangkat via FCM
+    // 3. Kirim push notification ke perangkat via FCM (High Priority agar tembus Doze mode Android saat app ditutup)
     if (firebaseApp && tokens.length > 0) {
       const message: MulticastMessage = {
         notification: {
           title: params.title,
           body: params.body,
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'eduinsight_channel',
+            sound: 'default',
+            priority: 'high',
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+          },
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
         },
         data: {
           notifId: newNotif.id,
